@@ -10,10 +10,18 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "templates" / "trip-template.md"
 
 
-def run(args, **kw):
+def run(args, cwd=ROOT):
     return subprocess.run(
         [sys.executable, "-m", "fieldguide_parser.parse_guide_md", *args],
-        capture_output=True, text=True, cwd=ROOT, **kw)
+        capture_output=True, text=True, cwd=cwd)
+
+
+def test_default_output_lands_in_cwd(tmp_path):
+    # Regression: with the package installed, the default out path must be
+    # caller-cwd-relative, not package-relative (2026-09-15).
+    r = run([str(TEMPLATE)], cwd=str(tmp_path))
+    assert r.returncode == 0, r.stderr
+    assert (tmp_path / "trips" / "example-2027-01" / "itinerary.json").exists()
 
 
 def test_template_example_parses(tmp_path):

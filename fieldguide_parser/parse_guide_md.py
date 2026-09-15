@@ -536,9 +536,12 @@ def main() -> int:
     }
 
     import os
+    # Default output is relative to the CALLER's working directory — never
+    # to this file, which lives in site-packages once installed. (The
+    # vendored-script era resolved against __file__, and the extraction
+    # silently sent output into the package tree; found 2026-09-15.)
     out = args.out or os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "trips", meta["trip"], "itinerary.json")
+        os.getcwd(), "trips", meta["trip"], "itinerary.json")
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     with open(out, "w", encoding="utf-8") as fh:
         json.dump(doc, fh, ensure_ascii=False, indent=2)
