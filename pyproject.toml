@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fieldguide-parser"
+version = "1.0.0"
+description = "Fail-loud trip-file parser for the Field Guide travel app: markdown in, itinerary.json out, hard errors for invented facts."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+# Stdlib only by design. python-docx is needed ONLY for the retired .docx
+# path and is imported lazily — install it yourself if you ever need that.
+dependencies = []
+
+[project.optional-dependencies]
+docx = ["python-docx"]
+
+[project.scripts]
+fg-parse = "fieldguide_parser.parse_guide_md:main"
+
+[tool.setuptools.packages.find]
+include = ["fieldguide_parser*"]
