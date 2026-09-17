@@ -121,7 +121,8 @@ an extra commitment: never put a booked thing inside one.
 `stop:` lines in walking order. The route line has no `where:`; each
 nested stop does. Nested stops are `[public]` unless their name carries a
 category; `next:` on a nested stop is how to reach the following stop, in
-words.
+words. A route's id is its name's slug; add `- id: <slug>` when the route
+is part of a choice, so renaming it later cannot detach a decision.
 
     - Afternoon | Shooting walk: 45th Street to 53rd [route]
       - who: chris
@@ -144,9 +145,11 @@ words.
 **Images.** An `image:` block under any stop (or nested stop). `alt:` is
 required and doubles as the caption. `opens:` is where a tap goes: `website`
 (the place's Website/Venue link), `maps` (the place's map search),
-`show <url>`, `artist <url>`, or a bare url. `source:` is where the picture
-came from, which is not necessarily where it opens; `credit:` and `date:`
-are optional. `image: none` makes a text tile that only links out — use it
+`show <url>`, `artist <url>`, or a bare url. `website` with no known site
+falls back to the map. `source:` is where the picture came from, which is
+not necessarily where it opens, and is required for any real file;
+`credit:` and `date:` are optional; `example: yes` marks a picture that
+illustrates an artist rather than the actual show. `image: none` makes a text tile that only links out — use it
 when no picture can be reused honestly. Never invent an image or a url.
 
       - image: images/nyc-2026-09/moma-entrance.jpg

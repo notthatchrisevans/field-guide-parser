@@ -43,6 +43,7 @@ ROUTE = (
     "  - image: images/t-2027-01/museum.jpg\n"
     "    - alt: Museum entrance\n"
     "    - opens: website\n"
+    "    - source: https://museum.example/press\n"
     "  - image: none\n"
     "    - alt: Artist example\n"
     "    - opens: artist https://artist.example/\n"
@@ -198,9 +199,38 @@ def test_image_without_alt(tmp_path):
            "no `alt:`")
 
 
-def test_image_website_without_link(tmp_path):
-    _fails(tmp_path, FRONT + "- Morning | A [public]\n  - where: A, T\n  - image: x.jpg\n    - alt: a\n    - opens: website\n",
-           "no Website/Venue link")
+def test_image_website_falls_back_to_maps(tmp_path):
+    r, doc = parse(tmp_path, FRONT + "- Morning | A [public]\n  - where: A, T\n"
+                   "  - image: none\n    - alt: a\n    - opens: website\n")
+    assert r.returncode == 0, r.stderr
+    img = doc["days"][0]["stops"][0]["images"][0]
+    assert img["opens"] == "maps" and img["url"].startswith("https://www.google.com/maps/")
+
+
+def test_image_file_needs_source(tmp_path):
+    _fails(tmp_path, FRONT + "- Morning | A [public]\n  - where: A, T\n  - image: x.jpg\n    - alt: a\n    - opens: maps\n",
+           "no `source:`")
+
+
+def test_route_explicit_id(tmp_path):
+    r, doc = parse(tmp_path, FRONT + "- Morning | Walk [route]\n  - id: monday-walk\n"
+                   "  - stop: A\n    - where: A, T\n")
+    assert r.returncode == 0, r.stderr
+    assert list(doc["days"][0]["routes"]) == ["monday-walk"]
+    assert doc["days"][0]["stops"][0]["route"] == "monday-walk"
+
+
+def test_route_id_must_be_slug_and_unique(tmp_path):
+    _fails(tmp_path, FRONT + "- Morning | Walk [route]\n  - id: Not A Slug\n  - stop: A\n    - where: A, T\n",
+           "must be a slug")
+    _fails(tmp_path, FRONT + ("- Morning | Walk [route]\n  - id: w\n  - stop: A\n    - where: A, T\n"
+                              "- Afternoon | Walk two [route]\n  - id: w\n  - stop: B\n    - where: B, T\n"),
+           "already used")
+
+
+def test_id_on_plain_stop_rejected(tmp_path):
+    _fails(tmp_path, FRONT + "- Morning | A [public]\n  - where: A, T\n  - id: a\n",
+           "is for a [route]")
 
 
 def test_image_unknown_field(tmp_path):

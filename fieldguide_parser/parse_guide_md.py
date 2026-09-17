@@ -88,7 +88,7 @@ CLOCK_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
 #   - choice: <id>  /  - default: yes alternatives within a day
 #   - stop: Name [cat]                ordered stop nested under a [route]
 #   - image: <path|none>              + alt / opens / source / credit / date
-PLAN_KEYS = {"who", "choice", "default", "stop", "image"}
+PLAN_KEYS = {"who", "choice", "default", "stop", "image", "id"}
 NESTED_KEYS = {"where", "name", "what", "notes", "next", "links", "review",
                "image"}
 IMAGE_KEYS = {"alt", "opens", "source", "credit", "date", "example"}
@@ -263,18 +263,27 @@ def finish_images(images: list[dict], place: dict | None, loc: str,
             link = next((l for l in (place or {}).get("links", [])
                          if l["label"].lower() in PLACE_LINK_LABELS), None)
             if url is None and link is None:
-                state.fail(iloc, f"image {alt!r}: `opens: website` but the "
-                                 f"place has no Website/Venue link — add "
-                                 f"`links: [Website](url)` or give the url")
-                continue
-            url = url or link["url"]
+                # No official site known: the brief's fallback is the map.
+                if place is None:
+                    state.fail(iloc, f"image {alt!r}: `opens: website` on a "
+                                     f"route with no url — give the url")
+                    continue
+                kind, url = "maps", place["maps_url"]
+            else:
+                url = url or link["url"]
         elif not kind:
             kind = "link"
         elif url is None:
             state.fail(iloc, f"image {alt!r}: `opens: {kind}` needs the url")
             continue
         src = (im.get("src") or "").strip()
-        rec = {"src": None if src.lower() in ("", "none") else src,
+        is_file = src.lower() not in ("", "none")
+        if is_file and not (im.get("source") or "").strip():
+            state.fail(iloc, f"image {alt!r} is a file but has no `source:` — "
+                             f"where it came from is required for any "
+                             f"picture we keep (a link-only tile needs none)")
+            continue
+        rec = {"src": src if is_file else None,
                "alt": alt, "opens": kind, "url": url}
         for key in ("source", "credit", "date"):
             if im.get(key):
@@ -452,8 +461,12 @@ def parse_md(text: str, state: ParseState):
                 state.fail(loc, f"route {display!r} has no `stop:` lines — a "
                                 f"route is its ordered stops")
                 return
-            base = slugify(display)
+            explicit = s.pop("_id", None)
+            base = explicit or slugify(display)
             rid, n = base, 2
+            if explicit and explicit in route_ids:
+                state.fail(loc, f"route id {explicit!r} is already used in "
+                                f"this trip")
             while rid in route_ids:
                 rid, n = f"{base}-{n}", n + 1
             route_ids.add(rid)
@@ -486,6 +499,7 @@ def parse_md(text: str, state: ParseState):
             option = {"id": rid, "kind": "route", "ref": rid, "name": display,
                       "who": who, "time": s["time"]}
         else:
+            s.pop("_id", None)
             if nested_stops:
                 state.fail(loc, f"{display!r} is [{cat}] but has `stop:` lines "
                                 f"— those belong under a [route]")
@@ -746,6 +760,16 @@ def parse_md(text: str, state: ParseState):
                 continue
             if key == "default":
                 stop["_default"] = val.strip().lower() in ("yes", "true")
+                continue
+            if key == "id":
+                if stop["_cat"] != "route":
+                    state.fail(loc, "`id:` is for a [route] (a stop's identity "
+                                    "is its `where:`)")
+                elif slugify(val) != val.strip() or not val.strip():
+                    state.fail(loc, f"route id {val!r} must be a slug "
+                                    f"(lowercase letters, digits, dashes)")
+                else:
+                    stop["_id"] = val.strip()
                 continue
             if key == "where":
                 stop["_where"] = val
