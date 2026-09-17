@@ -58,7 +58,11 @@ AIM_RE = re.compile(r"^aim\s*:\s*(.+?)\s*$", re.I)
 LEG_RE = re.compile(r"^leg\s*:\s*\[([^\]]+)\]\((\S+)\)(?:\s+—\s+(.+?))?\s*$", re.I)
 # `-` or `*`: both are legal markdown bullets, and AIs use both freely.
 STOP_RE = re.compile(r"^[-*]\s+(.+?)\s*\|\s*(.+?)\s*\[([^\]]+)\]\s*$")
-SUB_RE = re.compile(r"^\s+[-*]\s+([a-z_]+)\s*:\s*(.*?)\s*$")
+SUB_RE = re.compile(r"^(\s+)[-*]\s+([a-z_]+)\s*:\s*(.*?)\s*$")
+# `- stop: Name [category]` under a [route]; the category is optional.
+NESTED_STOP_RE = re.compile(r"^(.+?)\s*(?:\[([^\]]+)\])?\s*$")
+# `opens:` on an image: website | maps | show <url> | artist <url> | <url>
+OPENS_RE = re.compile(r"^(website|maps|show|artist|link)?\s*(https?://\S+)?$", re.I)
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)")
 
 FRONT_REQUIRED = ("trip", "city", "timezone", "currency", "year")
@@ -77,8 +81,19 @@ TRANSIT_KEYS = ("carrier", "service", "boarding", "departs", "arrives", "seat")
 TRANSIT_TIME_KEYS = ("boarding", "departs", "arrives")
 CLOCK_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
 
+# Participants, choices, routes and images (Sep 2026) — all additive: a
+# file that uses none of them parses to exactly what it did before.
+#   travelers: Chris; Debbie          (front matter) -> trip.travelers
+#   - who: chris                      stop belongs to these travelers
+#   - choice: <id>  /  - default: yes alternatives within a day
+#   - stop: Name [cat]                ordered stop nested under a [route]
+#   - image: <path|none>              + alt / opens / source / credit / date
+PLAN_KEYS = {"who", "choice", "default", "stop", "image"}
+NESTED_KEYS = {"where", "name", "what", "notes", "next", "links", "review",
+               "image"}
+IMAGE_KEYS = {"alt", "opens", "source", "credit", "date", "example"}
 SUB_KEYS = {"where", "name", "address", "what", "notes", "next", "links",
-            "review", *TRANSIT_KEYS}
+            "review", *TRANSIT_KEYS, *PLAN_KEYS}
 
 # Link labels that describe the venue rather than the visit: these attach to
 # the place and render on every stop there. Everything else stays on the stop.
@@ -171,6 +186,105 @@ def md_links(raw: str, where: str, state: ParseState) -> list[dict]:
     return out
 
 
+def parse_travelers(raw: str | None, state: ParseState) -> list[dict]:
+    """`travelers: Chris; Debbie` -> [{"id": "chris", "name": "Chris"}, ...].
+    Ids are the names' slugs, so `who: chris` reads naturally."""
+    if not raw:
+        return []
+    out, seen = [], set()
+    for part in re.split(r"[;,]", raw):
+        name = part.strip()
+        if not name:
+            continue
+        tid = slugify(name)
+        if tid in seen:
+            state.fail("front matter", f"travelers: {name!r} appears twice")
+            continue
+        seen.add(tid)
+        out.append({"id": tid, "name": name})
+    if raw.strip() and not out:
+        state.fail("front matter", "travelers: is empty")
+    return out
+
+
+def parse_who(raw: str, roster: list[dict], loc: str,
+              state: ParseState) -> list[str] | None:
+    if not roster:
+        state.fail(loc, "`who:` needs a `travelers:` roster in the front "
+                        "matter (e.g. `travelers: Chris; Debbie`)")
+        return None
+    ids = {t["id"] for t in roster}
+    out = []
+    for part in re.split(r"[;,]|\s+&\s+|\s+and\s+", raw):
+        p = slugify(part.strip()) if part.strip() else ""
+        if not p:
+            continue
+        if p not in ids:
+            state.fail(loc, f"`who:` names {part.strip()!r}, not in travelers "
+                            f"({', '.join(sorted(ids))})")
+            continue
+        if p not in out:
+            out.append(p)
+    if not out:
+        state.fail(loc, "`who:` is empty")
+        return None
+    if set(out) == ids:
+        return None                       # everyone: same as not saying
+    return out
+
+
+def finish_images(images: list[dict], place: dict | None, loc: str,
+                  state: ParseState) -> list[dict]:
+    """image: blocks -> [{src, alt, opens, url, source?, credit?, date?,
+    example?}]. The tap destination (`opens`) is separate from where the
+    picture came from (`source`)."""
+    out = []
+    for im in images:
+        iloc = im.get("_loc", loc)
+        alt = (im.get("alt") or "").strip()
+        if not alt:
+            state.fail(iloc, "image has no `alt:` (it is also the caption)")
+            continue
+        opens = (im.get("opens") or "").strip()
+        m = OPENS_RE.match(opens) if opens else None
+        if not m or (not m.group(1) and not m.group(2)):
+            state.fail(iloc, f"image {alt!r}: `opens:` must be website, maps, "
+                             f"show <url>, artist <url> or a url"
+                             + ("" if opens else " (missing)"))
+            continue
+        kind, url = (m.group(1) or "").lower(), m.group(2)
+        if kind == "maps":
+            if place is None:
+                state.fail(iloc, f"image {alt!r}: `opens: maps` needs a place; "
+                                 f"a route has none — put it on a stop:")
+                continue
+            url = place["maps_url"]
+        elif kind == "website":
+            link = next((l for l in (place or {}).get("links", [])
+                         if l["label"].lower() in PLACE_LINK_LABELS), None)
+            if url is None and link is None:
+                state.fail(iloc, f"image {alt!r}: `opens: website` but the "
+                                 f"place has no Website/Venue link — add "
+                                 f"`links: [Website](url)` or give the url")
+                continue
+            url = url or link["url"]
+        elif not kind:
+            kind = "link"
+        elif url is None:
+            state.fail(iloc, f"image {alt!r}: `opens: {kind}` needs the url")
+            continue
+        src = (im.get("src") or "").strip()
+        rec = {"src": None if src.lower() in ("", "none") else src,
+               "alt": alt, "opens": kind, "url": url}
+        for key in ("source", "credit", "date"):
+            if im.get(key):
+                rec[key] = im[key].strip()
+        if (im.get("example") or "").strip().lower() in ("yes", "true"):
+            rec["example"] = True
+        out.append(rec)
+    return out
+
+
 def get_place(state: ParseState, query: str, name: str, cat: str) -> str:
     """Same identity rule as the docx parser: the Maps query string IS the
     place. First sighting names it and sets its category."""
@@ -199,23 +313,44 @@ def parse_md(text: str, state: ParseState):
     day = None
     stop = None
     stop_place_query = None
+    roster = parse_travelers(meta.get("travelers"), state)
+    route_ids: set[str] = set()
+    choice_days: dict[str, str] = {}      # choice id -> the day that owns it
+    nested = None                          # open `stop:` under a [route]
+    nested_indent = 0
+    image = None                           # open `image:` block
+    image_indent = 0
+    image_owner = None
 
-    def close_stop():
-        nonlocal stop, stop_place_query
-        if stop is None:
+    def close_image():
+        nonlocal image, image_owner
+        if image is None:
             return
-        where = stop.pop("_where", None)
-        loc = stop.pop("_loc")
-        display = stop.pop("_display")
-        cat = stop.pop("_cat")
+        image_owner.setdefault("_images", []).append(image)
+        image = None
+        image_owner = None
+
+    def close_nested():
+        nonlocal nested
+        close_image()
+        if nested is None:
+            return
+        stop.setdefault("_nested", []).append(nested)
+        nested = None
+
+    def finalize_place_stop(s: dict, display: str, cat: str, loc: str,
+                            allow_transit: bool) -> dict | None:
+        """The part of closing a stop that needs a place: where -> place,
+        address, transit, links, notes, images. Returns the finished stop
+        or None when it failed (the problem is already recorded)."""
+        where = s.pop("_where", None)
         if not where:
             state.fail(loc, f"stop {display!r} has no `where:` line")
-            stop = None
-            return
-        place_name = stop.pop("_name", None) or display
+            return None
+        place_name = s.pop("_name", None) or display
         pid = get_place(state, where, place_name, cat)
         place = state.places[where]
-        addr = stop.pop("_pending_address", None)
+        addr = s.pop("_pending_address", None)
         if addr:
             place["address"] = addr
         if cat in LODGING_CATS and not place.get("address"):
@@ -223,8 +358,13 @@ def parse_md(text: str, state: ParseState):
                             f"(the cab-driver address is required; put it on "
                             f"the place's first stop)")
 
+        stop = s                           # the block below reads `stop`
         transit = stop.pop("_transit", {})
-        if transit and cat != "transit":
+        if transit and not allow_transit:
+            state.fail(loc, f"{display!r} is a route stop and carries journey "
+                            f"fields ({', '.join(sorted(transit))}) — rides "
+                            f"are top-level [transit] stops")
+        elif transit and cat != "transit":
             state.fail(loc, f"{display!r} is [{cat}] but carries journey "
                             f"fields ({', '.join(sorted(transit))}) — those "
                             f"belong on [transit] stops only")
@@ -279,9 +419,134 @@ def parse_md(text: str, state: ParseState):
             stop["notes"] = []
         stop.setdefault("photo", None)
         stop.setdefault("next", None)
-        day["stops"].append(stop)
-        stop = None
+        images = stop.pop("_images", [])
+        if images:
+            stop["images"] = finish_images(images, place, loc, state)
+        return stop
+
+    def close_stop():
+        nonlocal stop, stop_place_query
+        if stop is None:
+            return
+        close_nested()
+        s, stop = stop, None
         stop_place_query = None
+        loc = s.pop("_loc")
+        display = s.pop("_display")
+        cat = s.pop("_cat")
+        who = s.pop("_who", None)
+        choice = s.pop("_choice", None)
+        is_default = s.pop("_default", False)
+        nested_stops = s.pop("_nested", [])
+        if is_default and not choice:
+            state.fail(loc, f"{display!r} says `default: yes` but has no "
+                            f"`choice:` — a default is one option of a choice")
+        if cat == "route":
+            if s.pop("_where", None):
+                state.fail(loc, f"route {display!r} has a `where:` — a route "
+                                f"has no place of its own; put places on its "
+                                f"`stop:` lines")
+            if s.pop("_transit", None):
+                state.fail(loc, f"route {display!r} carries journey fields")
+            if not nested_stops:
+                state.fail(loc, f"route {display!r} has no `stop:` lines — a "
+                                f"route is its ordered stops")
+                return
+            base = slugify(display)
+            rid, n = base, 2
+            while rid in route_ids:
+                rid, n = f"{base}-{n}", n + 1
+            route_ids.add(rid)
+            route = {"name": display, "time": s["time"],
+                     "notes": s.get("notes") or [], "stops": [],
+                     "choice": choice}
+            if who:
+                route["who"] = who
+            r_images = s.pop("_images", [])
+            if r_images:
+                route["images"] = finish_images(r_images, None, loc, state)
+            for link in s.pop("_links", []):
+                route.setdefault("links", []).append(link)
+            day.setdefault("routes", {})[rid] = route
+            for n_s in nested_stops:
+                n_loc = n_s.pop("_loc")
+                n_display = n_s.pop("_display")
+                n_cat = n_s.pop("_cat") or "public"
+                fin = finalize_place_stop(n_s, n_display, n_cat, n_loc, False)
+                if fin is None:
+                    continue
+                fin["time"] = dict(s["time"])
+                if who:
+                    fin["who"] = who
+                fin["route"] = rid
+                if choice:
+                    fin["choice"] = choice
+                day["stops"].append(fin)
+                route["stops"].append(len(day["stops"]) - 1)
+            option = {"id": rid, "kind": "route", "ref": rid, "name": display,
+                      "who": who, "time": s["time"]}
+        else:
+            if nested_stops:
+                state.fail(loc, f"{display!r} is [{cat}] but has `stop:` lines "
+                                f"— those belong under a [route]")
+            fin = finalize_place_stop(s, display, cat, loc, True)
+            if fin is None:
+                return
+            if who:
+                fin["who"] = who
+            if choice:
+                fin["choice"] = choice
+            day["stops"].append(fin)
+            option = {"id": fin["place"], "kind": "stop",
+                      "ref": len(day["stops"]) - 1, "name": display,
+                      "who": who, "time": fin["time"]}
+        if choice:
+            owner = choice_days.setdefault(choice, day["date"])
+            if owner != day["date"]:
+                state.fail(loc, f"choice {choice!r} is already used on {owner} "
+                                f"— a choice lives inside one day")
+            option["default"] = is_default
+            option["loc"] = loc
+            day.setdefault("_choices", {}).setdefault(choice, []).append(option)
+
+    def close_day():
+        """Turn the day's collected choice options into day.choices."""
+        if day is None:
+            return
+        pending = day.pop("_choices", None)
+        if not pending:
+            return
+        out = {}
+        for cid, opts in pending.items():
+            loc = opts[0]["loc"]
+            if len(opts) < 2:
+                state.fail(loc, f"choice {cid!r} has only one option — a "
+                                f"choice needs at least two")
+                continue
+            defaults = [o for o in opts if o["default"]]
+            if len(defaults) > 1:
+                state.fail(loc, f"choice {cid!r} has {len(defaults)} "
+                                f"`default: yes` lines — at most one")
+                continue
+            who = None
+            if roster:
+                whos = [o["who"] for o in opts]
+                if all(w for w in whos):
+                    who = []
+                    for w in whos:
+                        for t in w:
+                            if t not in who:
+                                who.append(t)
+            rec = {"label": " or ".join(o["name"] for o in opts),
+                   "time": opts[0]["time"],
+                   "default": defaults[0]["id"] if defaults else None,
+                   "options": [{"id": o["id"], "kind": o["kind"],
+                                "ref": o["ref"]} for o in opts]}
+            if who:
+                rec["who"] = who
+            out[cid] = rec
+        if out:
+            day["choices"] = out
 
     for i, raw in enumerate(lines[body_start:], start=body_start + 1):
         line = raw.rstrip()
@@ -290,6 +555,7 @@ def parse_md(text: str, state: ParseState):
         m = DAY_RE.match(line)
         if m:
             close_stop()
+            close_day()
             weekday, month_name, dom = m.group(1).lower(), m.group(2).lower(), int(m.group(3))
             month = MONTHS.get(month_name)
             if month is None or year is None:
@@ -402,10 +668,84 @@ def parse_md(text: str, state: ParseState):
 
         m = SUB_RE.match(line)
         if m and stop is not None:
-            key, val = m.group(1).lower(), m.group(2)
+            indent = len(m.group(1).expandtabs(4))
+            key, val = m.group(2).lower(), m.group(3)
+            # Step out of whatever this line's indent has left behind.
+            if image is not None and indent <= image_indent:
+                close_image()
+            if nested is not None and indent <= nested_indent:
+                close_nested()
+            if image is not None:
+                if key not in IMAGE_KEYS:
+                    state.fail(loc, f"unknown image field {key!r} (allowed: "
+                                    f"{', '.join(sorted(IMAGE_KEYS))})")
+                    continue
+                image[key] = val
+                continue
+            if key == "image":
+                image = {"_loc": loc, "src": val}
+                image_indent = indent
+                image_owner = nested if nested is not None else stop
+                continue
+            if key == "stop":
+                if stop["_cat"] != "route":
+                    state.fail(loc, f"`stop:` lines belong under a [route], "
+                                    f"not a [{stop['_cat']}]")
+                    continue
+                nm = NESTED_STOP_RE.match(val)
+                n_display, n_cat_raw = (nm.group(1), nm.group(2)) if nm else (val, None)
+                n_cat = None
+                if n_cat_raw:
+                    low = n_cat_raw.strip().lower()
+                    n_cat = CATEGORY_MAP.get(low) or (
+                        low if low in CATEGORY_MAP.values() else None)
+                    if n_cat is None or n_cat == "route":
+                        state.fail(loc, f"unknown category {n_cat_raw!r} on "
+                                        f"stop {n_display!r}")
+                        n_cat = None
+                if not n_display.strip():
+                    state.fail(loc, "`stop:` has no name")
+                    continue
+                nested = {"_loc": loc, "_display": n_display.strip(),
+                          "_cat": n_cat, "_links": [], "notes": []}
+                nested_indent = indent
+                continue
+            if nested is not None:
+                if key not in NESTED_KEYS:
+                    state.fail(loc, f"unknown route-stop field {key!r} "
+                                    f"(allowed: {', '.join(sorted(NESTED_KEYS))})")
+                    continue
+                if key == "where":
+                    nested["_where"] = val
+                elif key == "name":
+                    nested["_name"] = val
+                elif key == "what":
+                    nested["photo"] = val
+                elif key == "notes":
+                    nested["notes"].append(val)
+                elif key == "next":
+                    nested["next"] = {"raw": val}
+                elif key == "links":
+                    nested["_links"].extend(md_links(val, loc, state))
+                elif key == "review":
+                    nested["notes"].append("⚠ REVIEW: " + val)
+                continue
             if key not in SUB_KEYS:
                 state.fail(loc, f"unknown stop field {key!r} "
                                 f"(allowed: {', '.join(sorted(SUB_KEYS))})")
+                continue
+            if key == "who":
+                stop["_who"] = parse_who(val, roster, loc, state)
+                continue
+            if key == "choice":
+                cid = slugify(val)
+                if not val.strip() or not cid:
+                    state.fail(loc, "`choice:` needs an id, e.g. monday-afternoon")
+                else:
+                    stop["_choice"] = cid
+                continue
+            if key == "default":
+                stop["_default"] = val.strip().lower() in ("yes", "true")
                 continue
             if key == "where":
                 stop["_where"] = val
@@ -437,6 +777,8 @@ def parse_md(text: str, state: ParseState):
         # other free text inside a day is tolerated, like docx extras
 
     close_stop()
+    close_day()
+    meta["_travelers"] = roster
     return meta, days
 
 
@@ -534,6 +876,8 @@ def main() -> int:
         "places": places,
         "days": days,
     }
+    if meta.get("_travelers"):
+        doc["trip"]["travelers"] = meta["_travelers"]
 
     import os
     # Default output is relative to the CALLER's working directory — never

@@ -60,6 +60,10 @@ CATEGORY_MAP = {
     # Japan (Dec 2026): temples-as-contemplative-space needed their own
     # word — gallery was a lie and public too loose. Family: study.
     "temple": "temple",
+    # Routes (Sep 2026): one shooting walk is one item that opens into
+    # ordered stops. The route line itself has no place; its `stop:` lines
+    # do. Family: field.
+    "route": "route",
     # Spa consolidation (Sep 2026): hammam and bathhouse were per-trip names
     # for the same kind of stop; "spa" is the canonical, the old names stay
     # as aliases so existing guides parse unchanged.

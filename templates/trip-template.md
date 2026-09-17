@@ -105,6 +105,56 @@ Link labels matter: `Menu`, `Venue`, `Website`, `Info` attach to the *place*
 (shown on every visit); `Event`, `Tickets` and everything else stay on that
 one stop.
 
+### Travelers, choices, routes and images (all optional)
+
+**Travelers.** Add `travelers: Chris; Debbie` to the front matter when more
+than one person travels. Then any stop can say `- who: chris` (or
+`who: chris, debbie`); a stop without `who:` is for everyone. Only names
+from the roster are allowed. Without a roster, leave `who:` out entirely.
+
+**Choices.** Two or more stops in the same day with the same
+`- choice: <id>` line are alternatives — pick one, not all. At most one of
+them may carry `- default: yes` (the suggestion). A choice is a choice, not
+an extra commitment: never put a booked thing inside one.
+
+**Routes.** A walking route is one `[route]` stop whose places are nested
+`stop:` lines in walking order. The route line has no `where:`; each
+nested stop does. Nested stops are `[public]` unless their name carries a
+category; `next:` on a nested stop is how to reach the following stop, in
+words.
+
+    - Afternoon | Shooting walk: 45th Street to 53rd [route]
+      - who: chris
+      - choice: monday-afternoon
+      - default: yes
+      - notes: Two to three hours; shorten freely.
+      - stop: 45th Street to Madison
+        - where: Vanderbilt Avenue and East 45th Street, Manhattan, NY
+        - what: Window layers and people framed by entrances.
+        - next: North on Madison toward 49th.
+      - stop: Madison Avenue: shop windows
+        - where: Madison Avenue and East 45th Street, Manhattan, NY
+
+    - Afternoon | MoMA [gallery]
+      - where: 11 West 53rd Street, New York, NY 10019
+      - who: chris
+      - choice: monday-afternoon
+      - links: [Venue](https://www.moma.org/)
+
+**Images.** An `image:` block under any stop (or nested stop). `alt:` is
+required and doubles as the caption. `opens:` is where a tap goes: `website`
+(the place's Website/Venue link), `maps` (the place's map search),
+`show <url>`, `artist <url>`, or a bare url. `source:` is where the picture
+came from, which is not necessarily where it opens; `credit:` and `date:`
+are optional. `image: none` makes a text tile that only links out — use it
+when no picture can be reused honestly. Never invent an image or a url.
+
+      - image: images/nyc-2026-09/moma-entrance.jpg
+        - alt: MoMA entrance on West 53rd Street
+        - opens: website
+        - source: https://press.moma.org/
+        - credit: MoMA press office
+
 The parser treats a missing menu/event/venue link as an advisory (listed, not
 fatal) because "if available" can legitimately mean "there isn't one" — but a
 missing lodging address is an error, because there is always an address.

@@ -1,0 +1,1068 @@
+{
+  "trip": {
+    "id": "nyc-2026-09",
+    "city": "New York",
+    "timezone": "America/New_York",
+    "currency": {
+      "local": "USD",
+      "home": "USD"
+    },
+    "start_date": "2026-09-18",
+    "end_date": "2026-09-25"
+  },
+  "places": {
+    "delta-dl0405-sfo-jfk": {
+      "name": "Delta DL0405 — SFO → JFK",
+      "category": "transit",
+      "maps_query": "San Francisco International Airport, San Francisco, CA",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=San+Francisco+International+Airport%2C+San+Francisco%2C+CA",
+      "coords": null
+    },
+    "arrive-at-jfk": {
+      "name": "Arrive at JFK",
+      "category": "airport",
+      "maps_query": "John F. Kennedy International Airport, Queens, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=John+F.+Kennedy+International+Airport%2C+Queens%2C+NY",
+      "coords": null
+    },
+    "the-evelyn": {
+      "name": "The Evelyn",
+      "category": "hotel",
+      "maps_query": "The Evelyn, New York, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=The+Evelyn%2C+New+York%2C+NY",
+      "coords": null,
+      "address": "7 E 27th St, New York, NY 10016",
+      "links": [
+        {
+          "label": "Website",
+          "url": "https://www.theevelyn.com/"
+        }
+      ]
+    },
+    "first-evening-in-new-york": {
+      "name": "First evening in New York",
+      "category": "public",
+      "maps_query": "New York, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=New+York%2C+NY",
+      "coords": null
+    },
+    "explore-brooklyn-with-debbie": {
+      "name": "Explore Brooklyn with Debbie",
+      "category": "public",
+      "maps_query": "Brooklyn, New York, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Brooklyn%2C+New+York%2C+NY",
+      "coords": null
+    },
+    "new-york-marriott-marquis": {
+      "name": "New York Marriott Marquis",
+      "category": "hotel",
+      "maps_query": "New York Marriott Marquis, New York, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=New+York+Marriott+Marquis%2C+New+York%2C+NY",
+      "coords": null,
+      "address": "1535 Broadway, New York, NY 10036",
+      "links": [
+        {
+          "label": "Website",
+          "url": "https://www.marriott.com/en-us/hotels/nycmq-new-york-marriott-marquis/overview/"
+        }
+      ]
+    },
+    "01-start-at-marriott-marquis": {
+      "name": "01 — Start at Marriott Marquis",
+      "category": "public",
+      "maps_query": "1535 Broadway, New York, NY 10036",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=1535+Broadway%2C+New+York%2C+NY+10036",
+      "coords": null
+    },
+    "02-west-44th-street-theater-entrances": {
+      "name": "02 — West 44th Street: theater entrances",
+      "category": "public",
+      "maps_query": "Broadway and West 44th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Broadway+and+West+44th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "03-bryant-park-paths-and-cafe-tables": {
+      "name": "03 — Bryant Park: paths and cafe tables",
+      "category": "public",
+      "maps_query": "Sixth Avenue and West 41st Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Sixth+Avenue+and+West+41st+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "04-library-steps-people-against-stone": {
+      "name": "04 — Library steps: people against stone",
+      "category": "public",
+      "maps_query": "Fifth Avenue and East 41st Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Fifth+Avenue+and+East+41st+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "05-east-42nd-street-windows-and-intersections": {
+      "name": "05 — East 42nd Street: windows and intersections",
+      "category": "public",
+      "maps_query": "Fifth Avenue and East 42nd Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Fifth+Avenue+and+East+42nd+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "06-grand-central-exterior-and-concourse": {
+      "name": "06 — Grand Central: exterior and concourse",
+      "category": "public",
+      "maps_query": "89 East 42nd Street, New York, NY 10017",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=89+East+42nd+Street%2C+New+York%2C+NY+10017",
+      "coords": null
+    },
+    "01-shooting-option-45th-street-to-madison": {
+      "name": "01 — Shooting option: 45th Street to Madison",
+      "category": "public",
+      "maps_query": "Vanderbilt Avenue and East 45th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Vanderbilt+Avenue+and+East+45th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "02-madison-avenue-shop-windows": {
+      "name": "02 — Madison Avenue: shop windows",
+      "category": "public",
+      "maps_query": "Madison Avenue and East 45th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Madison+Avenue+and+East+45th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "03-49th-street-toward-rockefeller-center": {
+      "name": "03 — 49th Street toward Rockefeller Center",
+      "category": "public",
+      "maps_query": "Madison Avenue and East 49th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Madison+Avenue+and+East+49th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "04-rockefeller-center-linger-and-observe": {
+      "name": "04 — Rockefeller Center: linger and observe",
+      "category": "public",
+      "maps_query": "Rockefeller Plaza and West 49th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Rockefeller+Plaza+and+West+49th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "05-53rd-street-choose-whether-to-keep-shooting": {
+      "name": "05 — 53rd Street: choose whether to keep shooting",
+      "category": "public",
+      "maps_query": "Fifth Avenue and West 53rd Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Fifth+Avenue+and+West+53rd+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "moma-alternative-to-the-shooting-route": {
+      "name": "MoMA — alternative to the shooting route",
+      "category": "public",
+      "maps_query": "11 West 53rd Street, New York, NY 10019",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=11+West+53rd+Street%2C+New+York%2C+NY+10019",
+      "coords": null
+    },
+    "01-optional-loop-billboard-color-outside-the-hot": {
+      "name": "01 — Optional loop: billboard color outside the hotel",
+      "category": "public",
+      "maps_query": "Broadway and West 46th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Broadway+and+West+46th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "02-duffy-square-and-the-red-steps": {
+      "name": "02 — Duffy Square and the red steps",
+      "category": "public",
+      "maps_query": "Broadway and West 47th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Broadway+and+West+47th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "03-west-47th-silhouettes-at-the-edge": {
+      "name": "03 — West 47th: silhouettes at the edge",
+      "category": "public",
+      "maps_query": "Seventh Avenue and West 47th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Seventh+Avenue+and+West+47th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "01-st-marks-place-start-the-route": {
+      "name": "01 — St. Marks Place: start the route",
+      "category": "public",
+      "maps_query": "Second Avenue and St. Marks Place, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Second+Avenue+and+St.+Marks+Place%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "02-tompkins-square-pause-for-everyday-life": {
+      "name": "02 — Tompkins Square: pause for everyday life",
+      "category": "public",
+      "maps_query": "Avenue A and St. Marks Place, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Avenue+A+and+St.+Marks+Place%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "03-east-7th-street-intimate-storefronts": {
+      "name": "03 — East 7th Street: intimate storefronts",
+      "category": "public",
+      "maps_query": "Avenue A and East 7th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Avenue+A+and+East+7th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "04-first-avenue-to-east-houston": {
+      "name": "04 — First Avenue to East Houston",
+      "category": "public",
+      "maps_query": "First Avenue and East 7th Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=First+Avenue+and+East+7th+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "05-orchard-and-stanton-lower-east-side-textures": {
+      "name": "05 — Orchard and Stanton: Lower East Side textures",
+      "category": "public",
+      "maps_query": "Orchard Street and Stanton Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Orchard+Street+and+Stanton+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "06-rivington-and-ludlow-a-short-loop": {
+      "name": "06 — Rivington and Ludlow: a short loop",
+      "category": "public",
+      "maps_query": "Orchard Street and Rivington Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Orchard+Street+and+Rivington+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "07-orchard-at-delancey-tenement-streetscape": {
+      "name": "07 — Orchard at Delancey: tenement streetscape",
+      "category": "public",
+      "maps_query": "103 Orchard Street, New York, NY 10002",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=103+Orchard+Street%2C+New+York%2C+NY+10002",
+      "coords": null
+    },
+    "08-orchard-and-broome-lunch-and-afternoon-decisi": {
+      "name": "08 — Orchard and Broome: lunch and afternoon decision",
+      "category": "public",
+      "maps_query": "Orchard Street and Broome Street, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Orchard+Street+and+Broome+Street%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "chinatown-shooting-walk": {
+      "name": "Chinatown shooting walk",
+      "category": "public",
+      "maps_query": "Chinatown, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Chinatown%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "icp-photobooks-usa-2000-25-optional": {
+      "name": "ICP — Photobooks USA 2000–25 — optional",
+      "category": "public",
+      "maps_query": "84 Ludlow Street, New York, NY 10002",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=84+Ludlow+Street%2C+New+York%2C+NY+10002",
+      "coords": null
+    },
+    "west-village-shooting-walk": {
+      "name": "West Village shooting walk",
+      "category": "public",
+      "maps_query": "West Village, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=West+Village%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "whitney-museum-optional-art-stop": {
+      "name": "Whitney Museum — optional art stop",
+      "category": "public",
+      "maps_query": "99 Gansevoort Street, New York, NY 10014",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=99+Gansevoort+Street%2C+New+York%2C+NY+10014",
+      "coords": null
+    },
+    "meatpacking-neighborhood-shooting": {
+      "name": "Meatpacking neighborhood shooting",
+      "category": "public",
+      "maps_query": "Meatpacking District, Manhattan, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Meatpacking+District%2C+Manhattan%2C+NY",
+      "coords": null
+    },
+    "yancey-richardson-manuel-alvarez-bravo-and-tania": {
+      "name": "Yancey Richardson — Manuel Álvarez Bravo and Tania Franco Klein",
+      "category": "public",
+      "maps_query": "525 West 22nd Street, New York, NY 10011",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=525+West+22nd+Street%2C+New+York%2C+NY+10011",
+      "coords": null
+    },
+    "howard-greenberg-baldwin-lee-new-york-1975-1979": {
+      "name": "Howard Greenberg — Baldwin Lee: New York (1975–1979)",
+      "category": "public",
+      "maps_query": "41 East 57th Street, Suite 801, New York, NY 10022",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=41+East+57th+Street%2C+Suite+801%2C+New+York%2C+NY+10022",
+      "coords": null
+    },
+    "greenpoint-avenues-and-side-streets": {
+      "name": "Greenpoint avenues and side streets",
+      "category": "public",
+      "maps_query": "Manhattan Avenue and Franklin Street, Greenpoint, Brooklyn, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Manhattan+Avenue+and+Franklin+Street%2C+Greenpoint%2C+Brooklyn%2C+NY",
+      "coords": null
+    },
+    "greenpoint-waterfront-and-continued-exploration": {
+      "name": "Greenpoint waterfront and continued exploration",
+      "category": "public",
+      "maps_query": "Greenpoint, Brooklyn, NY",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Greenpoint%2C+Brooklyn%2C+NY",
+      "coords": null
+    }
+  },
+  "days": [
+    {
+      "date": "2026-09-18",
+      "title": "Arrive — San Francisco to New York",
+      "thesis": "Fly to New York. Weekend plans Friday through Sunday are centered on Brooklyn; retain the confirmed Manhattan hotels.",
+      "stops": [
+        {
+          "notes": [
+            "Friday, September 18, 2026. Nonstop. Departure 07:00 San Francisco time (PDT); arrival 15:37 New York time (EDT). Times are local to each airport.",
+            "Source — current calendar itinerary, checked September 15, 2026.",
+            "⚠ REVIEW: Departure time needs reconciliation: calendar showed 06:00 Pacific on September 17, while this source records 07:00. Verify latest Delta confirmation. Boarding time, terminal, and seat not yet recorded."
+          ],
+          "time": {
+            "label": "07:00–15:37",
+            "start": "07:00",
+            "end": "15:37",
+            "certainty": "scheduled"
+          },
+          "transit": {
+            "carrier": "Delta Air Lines",
+            "service": "DL0405",
+            "departs": "07:00",
+            "arrives": "15:37"
+          },
+          "place": "delta-dl0405-sfo-jfk",
+          "photo": null,
+          "next": null
+        },
+        {
+          "notes": [
+            "Scheduled arrival 15:37 EDT on Delta DL0405.",
+            "⚠ REVIEW: Airport transfer still to plan."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "place": "arrive-at-jfk",
+          "photo": null,
+          "next": null
+        },
+        {
+          "notes": [
+            "Stay dates supplied in the planner note sent September 17, 2026 (UTC). Check-in and check-out times not supplied.",
+            "Public address verified against the hotel's official contact page: https://www.theevelyn.com/contact"
+          ],
+          "time": {
+            "label": "After arrival",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Stay September 18–20, then move to New York Marriott Marquis.",
+          "place": "the-evelyn",
+          "label_override": "The Evelyn — September 18–20",
+          "next": null
+        },
+        {
+          "notes": [
+            "⚠ REVIEW: Evening plans still to decide."
+          ],
+          "time": {
+            "label": "Evening",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "place": "first-evening-in-new-york",
+          "photo": null,
+          "next": null
+        }
+      ],
+      "assignment": [],
+      "nav_segments": [],
+      "anchors": [
+        "Delta DL0405 — SFO 07:00 PDT",
+        "JFK 15:37 EDT"
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "title": "Brooklyn — day with Debbie and Mary's wedding",
+      "thesis": "Spend the daytime together, then attend Mary's wedding at 17:00.",
+      "stops": [
+        {
+          "notes": [
+            "Chris and Debbie have the daytime together; start time is flexible.",
+            "⚠ REVIEW: Choose activities and allow travel/getting-ready time before the wedding."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "place": "explore-brooklyn-with-debbie",
+          "photo": null,
+          "next": null
+        },
+        {
+          "notes": [
+            "Fixed commitment supplied by Chris on September 17.",
+            "⚠ REVIEW: Wedding venue and address not yet supplied."
+          ],
+          "time": {
+            "label": "17:00",
+            "start": "17:00",
+            "end": null,
+            "certainty": "scheduled"
+          },
+          "place": "explore-brooklyn-with-debbie",
+          "label_override": "Mary's wedding",
+          "photo": null,
+          "next": null
+        }
+      ],
+      "assignment": [],
+      "nav_segments": []
+    },
+    {
+      "date": "2026-09-20",
+      "title": "Move hotels — The Evelyn to New York Marriott Marquis",
+      "thesis": "Possible morning wedding brunch for Mary, hotel move, then time with Kieran from 15:30 through the evening.",
+      "stops": [
+        {
+          "notes": [
+            "⚠ REVIEW: Tentative; confirm whether brunch is happening, the time and venue."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "place": "explore-brooklyn-with-debbie",
+          "label_override": "Mary’s wedding brunch",
+          "photo": null,
+          "next": null
+        },
+        {
+          "notes": [
+            "Hotel move supplied in the planner note sent September 17, 2026 (UTC); end date follows the existing September 25 return flight. Move, check-in and check-out times not supplied.",
+            "Public address verified against the hotel's official website: https://www.marriott.com/en-us/hotels/nycmq-new-york-marriott-marquis/overview/"
+          ],
+          "time": {
+            "label": "After The Evelyn",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Stay for the remainder of the trip, through the September 25 departure.",
+          "place": "new-york-marriott-marquis",
+          "label_override": "New York Marriott Marquis — September 20–25",
+          "next": null
+        },
+        {
+          "notes": [
+            "Kieran is Chris's son. This commitment takes up Sunday evening.",
+            "⚠ REVIEW: Meeting location and plans not yet supplied."
+          ],
+          "time": {
+            "label": "15:30",
+            "start": "15:30",
+            "end": null,
+            "certainty": "scheduled"
+          },
+          "place": "first-evening-in-new-york",
+          "label_override": "Time with Kieran",
+          "photo": null,
+          "next": null
+        }
+      ],
+      "assignment": [],
+      "nav_segments": []
+    },
+    {
+      "date": "2026-09-21",
+      "title": "Midtown — street photography or MoMA",
+      "thesis": "Individual waypoints in walking order. Morning is flexible; choose the afternoon photography route OR MoMA. Evening loop is optional.",
+      "stops": [
+        {
+          "notes": [
+            "Allow roughly three hours for the morning route, including stops; timing is flexible."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Suggested departure around 09:30; walk south to West 44th Street.",
+          "place": "01-start-at-marriott-marquis",
+          "next": null
+        },
+        {
+          "notes": [
+            "Continue south on Sixth Avenue to 41st Street."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Head east along 44th toward Sixth Avenue. Look for theater entrances, deliveries and people moving between bright avenues and quieter streets.",
+          "place": "02-west-44th-street-theater-entrances",
+          "next": null
+        },
+        {
+          "notes": [
+            "Suggested pause about 30 minutes; continue around the library to Fifth Avenue."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Enter the park and linger along the tree-lined paths: solitary figures, chair patterns and layers through foliage.",
+          "place": "03-bryant-park-paths-and-cafe-tables",
+          "next": null
+        },
+        {
+          "notes": [
+            "Continue north to 42nd Street, then east."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Work the library exterior and steps for waiting figures, gestures and passing buses.",
+          "place": "04-library-steps-people-against-stone",
+          "next": null
+        },
+        {
+          "notes": [
+            "Follow promising frames rather than rushing to the terminal."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Walk east toward Vanderbilt Avenue, working storefront reflections, overlapping signs and pedestrians.",
+          "place": "05-east-42nd-street-windows-and-intersections",
+          "next": null
+        },
+        {
+          "notes": [
+            "Handheld personal noncommercial photography is allowed; commercial work or professional equipment may require permission. Lunch location remains open."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Finish with people moving against the terminal architecture; explore the Main Concourse if appropriate.",
+          "place": "06-grand-central-exterior-and-concourse",
+          "next": null
+        },
+        {
+          "notes": [
+            "Photography route is an ALTERNATIVE to MoMA, not an additional commitment. Allow two to three hours for all afternoon waypoints; shorten freely."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "After lunch, head west on 45th Street toward Madison Avenue. Look for window layers and people framed by entrances.",
+          "place": "01-shooting-option-45th-street-to-madison",
+          "next": null
+        },
+        {
+          "notes": [
+            "Part of the optional photography route instead of MoMA."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Head north toward 49th Street. Pause at shop windows and cross streets for reflections and pedestrians.",
+          "place": "02-madison-avenue-shop-windows",
+          "next": null
+        },
+        {
+          "notes": [
+            "Part of the photography alternative. Use public pedestrian routes and observe posted site rules."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Turn west toward Fifth Avenue and Rockefeller Center, watching for figures against architectural lines.",
+          "place": "03-49th-street-toward-rockefeller-center",
+          "next": null
+        },
+        {
+          "notes": [
+            "Continue north toward 53rd Street when ready; part of the photography alternative."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Explore the plaza area for entrances, repeating lines and pedestrian movement.",
+          "place": "04-rockefeller-center-linger-and-observe",
+          "next": null
+        },
+        {
+          "notes": [
+            "End the optional route here or return via Sixth Avenue and 45th Street toward the hotel."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Head west toward Sixth Avenue, photographing street life and windows. MoMA is nearby if your mood changes.",
+          "place": "05-53rd-street-choose-whether-to-keep-shooting",
+          "next": null
+        },
+        {
+          "notes": [
+            "Regular Monday hours checked September 17: 10:30–17:30. No ticket booked; exhibitions and visit length remain open."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Choose a museum visit instead of the afternoon photography route if it appeals.",
+          "place": "moma-alternative-to-the-shooting-route",
+          "next": null
+        },
+        {
+          "notes": [
+            "Entire evening loop is optional, roughly 60–90 minutes, depending on energy, weather and plans with Debbie."
+          ],
+          "time": {
+            "label": "Evening",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Start around dusk near the Marriott. Choose a background and wait for faces catching changing billboard colors.",
+          "place": "01-optional-loop-billboard-color-outside-the-hot",
+          "next": null
+        },
+        {
+          "notes": [
+            "Continue west along 47th; no assumption of step access."
+          ],
+          "time": {
+            "label": "Evening",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Work the edges for layered figures; try an elevated view if the steps are open.",
+          "place": "02-duffy-square-and-the-red-steps",
+          "next": null
+        },
+        {
+          "notes": [
+            "Return toward the Broadway plazas when ready."
+          ],
+          "time": {
+            "label": "Evening",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Step west onto 47th and look back toward Times Square for figures emerging from the darker street.",
+          "place": "03-west-47th-silhouettes-at-the-edge",
+          "next": null
+        },
+        {
+          "notes": [
+            "Stay on pedestrian space; proceed south toward 44th."
+          ],
+          "time": {
+            "label": "Evening",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Explore the plaza between 45th and 46th for people waiting or talking. If pavement is wet, try low reflection compositions.",
+          "place": "01-optional-loop-billboard-color-outside-the-hot",
+          "label_override": "04 — Broadway plaza: waiting figures and reflections",
+          "next": null
+        },
+        {
+          "notes": [
+            "Finish whenever satisfied; return toward Broadway and the Marriott. All evening stops are optional."
+          ],
+          "time": {
+            "label": "Evening",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Head west toward Eighth Avenue, looking for theater entrances and pools of marquee light.",
+          "place": "02-west-44th-street-theater-entrances",
+          "label_override": "05 — West 44th: theater light, then hotel",
+          "next": null
+        }
+      ],
+      "assignment": [],
+      "nav_segments": []
+    },
+    {
+      "date": "2026-09-22",
+      "title": "East Village, Lower East Side and Chinatown",
+      "thesis": "Draft shooting day centered on Chris's favorite neighborhoods, with plenty of unstructured walking time.",
+      "stops": [
+        {
+          "notes": [
+            "Suggested start around 10:00; allow three to four hours including pauses and lunch. This is one continuous flexible route, represented as individual items until nested routes are supported."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Walk east along St. Marks toward Avenue A. Look for storefront layers, lettering, stoops and figures framed by entrances.",
+          "place": "01-st-marks-place-start-the-route",
+          "next": null
+        },
+        {
+          "notes": [
+            "Stay as long as the scene holds your attention; continue west along 7th Street."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Explore the park paths for benches, gestures and layers through trees; leave at Avenue A and East 7th Street.",
+          "place": "02-tompkins-square-pause-for-everyday-life",
+          "next": null
+        },
+        {
+          "notes": [
+            "At First Avenue turn south toward Houston Street."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Walk west toward First Avenue, watching windows, small entrances and quieter street compositions.",
+          "place": "03-east-7th-street-intimate-storefronts",
+          "next": null
+        },
+        {
+          "notes": [
+            "At Houston turn west to Orchard Street, then cross at the marked crossing to head south on Orchard."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Follow First Avenue south, using intersections for moving figures and contrasting backgrounds.",
+          "place": "04-first-avenue-to-east-houston",
+          "next": null
+        },
+        {
+          "notes": [
+            "No fixed subject list; follow the light and activity."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Continue south on Orchard toward Rivington, lingering over storefronts, fire escapes and the mix of older and newer facades.",
+          "place": "05-orchard-and-stanton-lower-east-side-textures",
+          "next": null
+        },
+        {
+          "notes": [
+            "This loop returns to Orchard for the southbound continuation."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Turn east on Rivington to Ludlow, south on Ludlow to Delancey, then west to Orchard. Look for windows, signs and people at street corners.",
+          "place": "06-rivington-and-ludlow-a-short-loop",
+          "next": null
+        },
+        {
+          "notes": [
+            "The Tenement Museum visitor center is a location anchor, not a booked museum stop. Cross Delancey at the pedestrian crossing."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Photograph the surrounding streetscape, then continue south on Orchard toward Broome.",
+          "place": "07-orchard-at-delancey-tenement-streetscape",
+          "next": null
+        },
+        {
+          "notes": [
+            "Chinatown route is still to be detailed. ICP remains optional; no requirement to stop shooting."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Finish this route here, with lunch wherever appeals. Continue south toward Grand Street for the Chinatown block, or east along Broome toward Ludlow for ICP.",
+          "place": "08-orchard-and-broome-lunch-and-afternoon-decisi",
+          "next": null
+        },
+        {
+          "notes": [
+            "⚠ REVIEW: Sequence with the Lower East Side and any museum stop remains flexible."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Continue the neighborhood exploration, with time for storefront details and street life.",
+          "place": "chinatown-shooting-walk",
+          "next": null
+        },
+        {
+          "notes": [
+            "Published regular Tuesday hours checked September 17: 10:30–18:30. Photobooks USA 2000–25 runs June 11–September 28, 2026. Optional indoor break, not an obligation to interrupt shooting.",
+            "⚠ REVIEW: Photobook exhibition selected as the interest; admission not booked."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Visit Photobooks USA 2000–25, the exhibition Chris is interested in; the Yves Saint Laurent exhibition is not the reason for this stop.",
+          "place": "icp-photobooks-usa-2000-25-optional",
+          "links": [
+            {
+              "label": "Exhibitions",
+              "url": "https://www.icp.org/exhibitions"
+            },
+            {
+              "label": "Visit",
+              "url": "https://www.icp.org/visit"
+            }
+          ],
+          "next": null
+        }
+      ],
+      "assignment": [],
+      "nav_segments": []
+    },
+    {
+      "date": "2026-09-23",
+      "title": "West Village and Meatpacking — quieter compositions",
+      "thesis": "West-side shooting day with Yancey Richardson as the planned photography-gallery stop; Whitney remains optional.",
+      "stops": [
+        {
+          "notes": [
+            "⚠ REVIEW: Exact route and start time still open."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Quieter streets, windows and deliberate compositions, working toward the Meatpacking District.",
+          "place": "west-village-shooting-walk",
+          "next": null
+        },
+        {
+          "notes": [
+            "Published regular Wednesday hours checked September 17: 10:30–18:00.",
+            "⚠ REVIEW: Select exhibitions and confirm interest; admission not booked."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "place": "whitney-museum-optional-art-stop",
+          "links": [
+            {
+              "label": "Visit",
+              "url": "https://whitney.org/Visit"
+            }
+          ],
+          "photo": null,
+          "next": null
+        },
+        {
+          "notes": [
+            "⚠ REVIEW: Flexible order; evening remains unplanned."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Continue shooting before or after the museum, adapting to light and rain.",
+          "place": "meatpacking-neighborhood-shooting",
+          "next": null
+        },
+        {
+          "notes": [
+            "Both exhibitions run September 10–October 17, 2026. Published hours checked September 17: Tuesday–Saturday 10:00–18:00. Continue north into Chelsea after Meatpacking; suggested visit 45–60 minutes, flexible.",
+            "⚠ REVIEW: Planned visit, not a reservation. Prioritize this gallery if time is short; Whitney remains optional."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Visit the Manuel Álvarez Bravo exhibition for quiet street scenes, framing and deep shadows; also see Tania Franco Klein’s RAGE™ at the same gallery.",
+          "place": "yancey-richardson-manuel-alvarez-bravo-and-tania",
+          "links": [
+            {
+              "label": "Álvarez Bravo",
+              "url": "https://www.yanceyrichardson.com/exhibitions/manuel-alvarez-bravo"
+            },
+            {
+              "label": "Franco Klein",
+              "url": "https://www.yanceyrichardson.com/exhibitions/tania-franco-klein2"
+            },
+            {
+              "label": "Hours",
+              "url": "https://www.yanceyrichardson.com/contact"
+            }
+          ],
+          "next": null
+        }
+      ],
+      "assignment": [],
+      "nav_segments": []
+    },
+    {
+      "date": "2026-09-24",
+      "title": "Greenpoint — a new Brooklyn shooting neighborhood",
+      "thesis": "Start with Baldwin Lee at Howard Greenberg, then travel to Greenpoint for a flexible Brooklyn shooting day. Chris has mostly photographed around the Williamsburg Bridge and wants to explore Greenpoint.",
+      "stops": [
+        {
+          "notes": [
+            "Exhibition runs September 17–October 31, 2026. Published Thursday hours: 10:00–18:00. Suggested visit 45–60 minutes; then allow travel time to Greenpoint.",
+            "⚠ REVIEW: Suggested arrival, not a booking. Exact onward transport to Greenpoint remains to be selected."
+          ],
+          "time": {
+            "label": "10:00",
+            "start": "10:00",
+            "end": null,
+            "certainty": "scheduled"
+          },
+          "photo": "See Baldwin Lee’s large-scale black-and-white photographs from his early New York work before heading to Brooklyn.",
+          "place": "howard-greenberg-baldwin-lee-new-york-1975-1979",
+          "links": [
+            {
+              "label": "Exhibition",
+              "url": "https://www.howardgreenberg.com/exhibitions/current/"
+            },
+            {
+              "label": "Visit",
+              "url": "https://www.howardgreenberg.com/contact/"
+            }
+          ],
+          "next": null
+        },
+        {
+          "notes": [
+            "Keep the route loose, with cafe breaks and sheltered pauses if needed.",
+            "⚠ REVIEW: Choose starting point, transport and exact walking route."
+          ],
+          "time": {
+            "label": "Late morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Explore storefronts, neighborhood character, windows and quieter human moments.",
+          "place": "greenpoint-avenues-and-side-streets",
+          "next": null
+        },
+        {
+          "notes": [
+            "⚠ REVIEW: Weather-dependent; specific indoor fallback or art stop still to select. Evening remains open."
+          ],
+          "time": {
+            "label": "Afternoon",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "photo": "Work toward the waterfront if conditions suit; return to promising streets rather than forcing a long circuit.",
+          "place": "greenpoint-waterfront-and-continued-exploration",
+          "next": null
+        }
+      ],
+      "assignment": [],
+      "nav_segments": []
+    },
+    {
+      "date": "2026-09-25",
+      "title": "Return — New York to San Francisco",
+      "thesis": "Fly home on the morning nonstop from JFK.",
+      "stops": [
+        {
+          "notes": [
+            "Friday, September 25, 2026. Nonstop. Departure 07:00 New York time (EDT); arrival 10:17 San Francisco time (PDT). Times are local to each airport.",
+            "Source — calendar itinerary, checked September 15, 2026.",
+            "⚠ REVIEW: Boarding time, terminal, seat, and early-morning airport transfer not yet recorded."
+          ],
+          "time": {
+            "label": "07:00–10:17",
+            "start": "07:00",
+            "end": "10:17",
+            "certainty": "scheduled"
+          },
+          "transit": {
+            "carrier": "Delta Air Lines",
+            "service": "DL0668",
+            "departs": "07:00",
+            "arrives": "10:17"
+          },
+          "place": "arrive-at-jfk",
+          "label_override": "Delta DL0668 — JFK → SFO",
+          "photo": null,
+          "next": null
+        }
+      ],
+      "assignment": [],
+      "nav_segments": [],
+      "anchors": [
+        "Delta DL0668 — JFK 07:00 EDT",
+        "SFO 10:17 PDT"
+      ]
+    }
+  ]
+}

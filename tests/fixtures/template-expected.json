@@ -1,0 +1,164 @@
+{
+  "trip": {
+    "id": "example-2027-01",
+    "city": "Example",
+    "timezone": "Europe/London",
+    "currency": {
+      "local": "GBP",
+      "home": "USD"
+    },
+    "start_date": "2027-01-01",
+    "end_date": "2027-01-01"
+  },
+  "places": {
+    "some-bakery": {
+      "name": "Some Bakery",
+      "category": "food",
+      "maps_query": "Some Bakery, Exampletown",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Some+Bakery%2C+Exampletown",
+      "coords": null,
+      "links": [
+        {
+          "label": "Menu",
+          "url": "https://example.com/menu"
+        }
+      ]
+    },
+    "some-gallery": {
+      "name": "Some Gallery",
+      "category": "gallery",
+      "maps_query": "Some Gallery, Exampletown",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Some+Gallery%2C+Exampletown",
+      "coords": null,
+      "links": [
+        {
+          "label": "Venue",
+          "url": "https://example.com/gallery"
+        }
+      ]
+    },
+    "example-rail-exampletown-otherville": {
+      "name": "Example Rail — Exampletown → Otherville",
+      "category": "transit",
+      "maps_query": "Exampletown Station, Exampletown",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Exampletown+Station%2C+Exampletown",
+      "coords": null
+    },
+    "booked-restaurant": {
+      "name": "Booked Restaurant",
+      "category": "food",
+      "maps_query": "Booked Restaurant, Exampletown",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Booked+Restaurant%2C+Exampletown",
+      "coords": null,
+      "links": [
+        {
+          "label": "Menu",
+          "url": "https://example.com/dinner"
+        }
+      ]
+    },
+    "the-flat": {
+      "name": "The Flat",
+      "category": "airbnb",
+      "maps_query": "1 Example Street, Exampletown",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=1+Example+Street%2C+Exampletown",
+      "coords": null,
+      "address": "1 Example Street, Exampletown EX1 2AB"
+    }
+  },
+  "days": [
+    {
+      "date": "2027-01-01",
+      "title": "Example Day — replace everything from here down",
+      "thesis": "One sentence that names what this day is about.",
+      "stops": [
+        {
+          "notes": [
+            "Why this stop is worth it."
+          ],
+          "time": {
+            "label": "Morning",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "next": {
+            "raw": "Leave 09:15 (10 min • arr. 09:25)"
+          },
+          "place": "some-bakery",
+          "photo": null
+        },
+        {
+          "notes": [],
+          "time": {
+            "label": "10:00–12:00",
+            "start": "10:00",
+            "end": "12:00",
+            "certainty": "scheduled"
+          },
+          "photo": "What's on and why it made the list.",
+          "place": "some-gallery",
+          "label_override": "An Exhibition — Some Gallery",
+          "next": null
+        },
+        {
+          "notes": [
+            "res ABC123 • sit on the left for the views."
+          ],
+          "time": {
+            "label": "14:30–16:45",
+            "start": "14:30",
+            "end": "16:45",
+            "certainty": "scheduled"
+          },
+          "transit": {
+            "carrier": "Example Rail",
+            "service": "XR 1234",
+            "boarding": "14:10",
+            "departs": "14:30",
+            "arrives": "16:45",
+            "seat": "Coach B, 41A"
+          },
+          "place": "example-rail-exampletown-otherville",
+          "photo": null,
+          "next": null
+        },
+        {
+          "notes": [
+            "✅ booked — cancellation terms if any.",
+            "⚠ REVIEW: Confirm the table time against the booking email."
+          ],
+          "time": {
+            "label": "19:00",
+            "start": "19:00",
+            "end": null,
+            "certainty": "scheduled"
+          },
+          "place": "booked-restaurant",
+          "photo": null,
+          "next": null
+        },
+        {
+          "notes": [
+            "Check-in details."
+          ],
+          "time": {
+            "label": "Evening",
+            "start": null,
+            "end": null,
+            "certainty": "open"
+          },
+          "place": "the-flat",
+          "photo": null,
+          "next": null
+        }
+      ],
+      "assignment": [],
+      "nav_segments": [],
+      "anchors": [
+        "Booked Restaurant 19:00",
+        "Booked Show 21:00"
+      ]
+    }
+  ]
+}
