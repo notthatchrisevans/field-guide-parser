@@ -438,32 +438,49 @@ def _day_pids(day: dict, places: dict) -> list[str]:
                               if s.get("place") in places))
 
 
-def check_plausible_day(doc: dict, max_km: float = DAY_KM, min_others: int = 3
-                        ) -> list[tuple[str, str]]:
+# Stops that are far from the day's walking by nature: never judged by the
+# per-day rule, and left out of the day's middle so they can't drag it.
+DAY_EXEMPT = {"airport", "transit"}
+
+
+def check_plausible_day(doc: dict, max_km: float = DAY_KM, min_others: int = 3,
+                        exclude: set[str] | None = None) -> list[tuple[str, str]]:
     """A pin is implausible when it sits more than max_km from the median of
     its DAY's other pins (days with at least min_others of them) -- on every
     day it appears where the rule applies. A hotel on a day trip still
     passes on its other days; a market geocoded into the next county, on a
-    day of walking one neighbourhood, fails."""
+    day of walking one neighbourhood, fails. Airports and transit are
+    exempt (JFK is 20 km from Midtown and right).
+
+    Worst first: the furthest failing pin is set aside and the rest judged
+    again without it, so two wrong pins on one day can't drag the middle
+    off and condemn the right ones. `exclude`: pins already judged wrong."""
     places = doc.get("places", {})
-    verdicts: dict[str, list] = {}
-    for day in doc.get("days", []):
-        pts = {p: _pin(places[p]) for p in _day_pids(day, places) if _pin(places[p])}
-        for pid, pt in pts.items():
-            others = [q for o, q in pts.items() if o != pid]
-            if len(others) < min_others:
-                continue
-            med = _median_pt(others)
-            km = haversine_km(med, pt)
-            verdicts.setdefault(pid, []).append((km <= max_km, km, day.get("date"), med, pt))
+    out = set(exclude or ())
     bad = []
-    for pid, vs in sorted(verdicts.items()):
-        if not any(v[0] for v in vs):
-            _, km, date, med, pt = min(vs, key=lambda v: v[1])
-            bad.append((pid, f"{km:,.1f} km from the middle of {date}'s other stops "
-                             f"({med[0]:.4f}, {med[1]:.4f}) -- pin is "
-                             f"{pt[0]:.6f}, {pt[1]:.6f}"))
-    return bad
+    while True:
+        verdicts: dict[str, list] = {}
+        for day in doc.get("days", []):
+            pts = {p: _pin(places[p]) for p in _day_pids(day, places)
+                   if _pin(places[p]) and p not in out
+                   and (places[p].get("category") or "").lower() not in DAY_EXEMPT}
+            for pid, pt in pts.items():
+                others = [q for o, q in pts.items() if o != pid]
+                if len(others) < min_others:
+                    continue
+                med = _median_pt(others)
+                km = haversine_km(med, pt)
+                verdicts.setdefault(pid, []).append((km <= max_km, km, day.get("date"), med, pt))
+        failing = [(min(v[1] for v in vs), pid) for pid, vs in verdicts.items()
+                   if not any(v[0] for v in vs)]
+        if not failing:
+            return sorted(bad)
+        _, pid = max(failing)
+        _, km, date, med, pt = min(verdicts[pid], key=lambda v: v[1])
+        bad.append((pid, f"{km:,.1f} km from the middle of {date}'s other stops "
+                         f"({med[0]:.4f}, {med[1]:.4f}) -- pin is "
+                         f"{pt[0]:.6f}, {pt[1]:.6f}"))
+        out.add(pid)
 
 
 # ------------------------------------------------------------ street corners
@@ -807,7 +824,7 @@ def main() -> int:
                else check_plausible(places, args.max_km))
         if args.day_km:
             seen = {pid for pid, _ in bad}
-            bad += [b for b in check_plausible_day(doc, args.day_km) if b[0] not in seen]
+            bad += check_plausible_day(doc, args.day_km, exclude=seen)
         for pid, why in bad:
             implausible.append((f"{doc['trip']['id']}/{pid}", why))
             if args.soft:                      # a blank beats a wrong pin

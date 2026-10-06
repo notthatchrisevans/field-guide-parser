@@ -359,3 +359,19 @@ def test_overpass_down_stops_asking_after_three_failures(tmp_path, monkeypatch):
                                       "--soft", "--nearest"])
     assert G.main() == 0
     assert len(calls) == G.OVERPASS_GIVE_UP
+
+
+def test_per_day_worst_first_and_airports_exempt():
+    """NYC day one: JFK (right, 20 km out), a hotel pinned 4 km uptown
+    (wrong), a corner pinned in Knoxville (wrong), and three right pins
+    near 27th Street. Only the two wrong ones go."""
+    def pl(lat, lng, cat="public"):
+        return {"category": cat, "coords": {"lat": lat, "lng": lng}}
+    doc = {"places": {"jfk": pl(40.6429, -73.7794, "airport"), "uptown": pl(40.7816, -73.9762, "hotel"),
+                      "knox": pl(35.9848, -83.9353), "a": pl(40.7440, -73.9869),
+                      "b": pl(40.7435, -73.9882), "c": pl(40.7413, -73.9895)},
+           "days": [{"date": "2026-09-18",
+                     "stops": [{"place": p} for p in ("jfk", "uptown", "knox", "a", "b", "c")]}]}
+    assert [pid for pid, _ in G.check_plausible_day(doc, max_km=3)] == ["knox", "uptown"]
+    assert [pid for pid, _ in G.check_plausible_day(doc)] == ["knox"]
+    assert G.check_plausible_day(doc, exclude={"knox"}) == []
