@@ -6,6 +6,7 @@ Runs in the trips build after `fg-geocode` (specs/field-guide-pictures.md,
 piece A). For each place it writes, when found:
 
     place.website = "https://..."            (OpenStreetMap website tag)
+    place.wikidata = "Q..."                  (the place's own item, once accepted)
     place.picture = {src, credit, license, source: "wikimedia", page}
     trip.picture  = the same shape            (the city's own Wikidata image)
 
@@ -339,28 +340,30 @@ def file_picture(file_name: str, cache: dict, net: Net) -> dict | None:
     return rec
 
 
-def item_record(qid: str, cache: dict, net: Net) -> dict | None:
-    """{file, names} of a Wikidata item with a main image, or None."""
+def item_record(qid: str, cache: dict, net: Net) -> dict:
+    """{file, names} of a Wikidata item. An item with no main image is a
+    remembered miss that still keeps its names: {miss, names}."""
     wc = cache.setdefault("wikidata", {})
     rec = wc.get(qid)
-    if fresh_miss(rec):
-        return None
-    if rec is None or "miss" in rec or "names" not in rec:
-        name, names = item_entity(qid, net)
-        if not name:
-            wc[qid] = {"miss": today()}
-            return None
-        rec = wc[qid] = {"file": name, "names": names}
+    if rec is not None and "names" in rec and ("miss" not in rec or fresh_miss(rec)):
+        return rec
+    name, names = item_entity(qid, net)
+    rec = wc[qid] = {"file": name, "names": names} if name else {"miss": today(), "names": names}
     return rec
+
+
+def item_named_for(rec: dict, name: str | None) -> bool:
+    """The item's English label or an alias matches the place's name."""
+    return any(names_match(name, n) for n in rec.get("names") or [])
 
 
 def item_picture(qid: str, cache: dict, net: Net, must_match: str | None = None) -> dict | None:
     """The Commons record of a Wikidata item's main image, or None. With
     must_match, the item's English label or an alias must match that name."""
     rec = item_record(qid, cache, net)
-    if rec is None:
+    if must_match is not None and not item_named_for(rec, must_match):
         return None
-    if must_match is not None and not any(names_match(must_match, n) for n in rec["names"]):
+    if not rec.get("file"):
         return None
     return file_picture(rec["file"], cache, net)
 
@@ -484,11 +487,19 @@ class Run:
             self.counts["left for live sources" if cat not in NO_PICTURE
                         else "none by category"] += 1
         else:
-            # A NO_PICTURE place (a hotel, a corner) only gets the item's
-            # picture when the item is named for it.
-            must = (place.get("name") or "") if cat in NO_PICTURE else None
-            rec = self.soft(f"{trip_id}/{pid} Wikidata {qid}", item_picture,
-                            qid, self.cache, self.net, must)
+            # A NO_PICTURE place (a hotel, a corner) only takes the item when
+            # it is named for it. An accepted item is written as
+            # place.wikidata: the droplet's landmark exception reads it.
+            item = self.soft(f"{trip_id}/{pid} Wikidata {qid}", item_record,
+                             qid, self.cache, self.net)
+            accepted = item is not None and (cat not in NO_PICTURE
+                                             or item_named_for(item, place.get("name")))
+            if accepted:
+                place["wikidata"] = qid
+                self.counts["wikidata"] += 1
+            rec = accepted and item.get("file") and self.soft(
+                f"{trip_id}/{pid} Commons {item['file']!r}", file_picture,
+                item["file"], self.cache, self.net)
             src = rec and self.soft(f"{trip_id}/{pid} download", download,
                                     rec, trip_id, pid, self.args.images, self.net)
             if src:
@@ -590,6 +601,7 @@ def main() -> int:
         mine = hand_picked(doc)
         for pid, place in (doc.get("places") or {}).items():
             place.pop("picture", None)            # rebuilt from cache every run
+            place.pop("wikidata", None)
             if pid in mine:
                 run.counts["hand-picked"] += 1
                 continue

@@ -353,3 +353,33 @@ def test_names_match():
     assert not P.names_match("Start at Marriott Marquis", "Times Square")
     assert not P.names_match("Museum", "Museum")              # nothing significant left
     assert not P.names_match("Arrive at JFK", "John F. Kennedy International Airport")
+
+
+def test_accepted_item_is_written_as_place_wikidata(tmp_path, monkeypatch):
+    _, doc, _ = run(tmp_path, monkeypatch)
+    p = doc["places"]
+    assert p["moma"]["wikidata"] == "Q188740"
+    assert p["bridge"]["wikidata"] == "Q125006"           # landmark exception
+    assert "wikidata" not in p["katz"] and "wikidata" not in p["corner"]
+
+
+def test_rejected_item_is_not_written(tmp_path, monkeypatch):
+    p = _run_one(tmp_path, monkeypatch, "Start at Marriott Marquis", "public",
+                 "Times Square", {"wikidata": "Q11259"})
+    assert "wikidata" not in p                            # wrong OSM object
+    p = _run_one(tmp_path, monkeypatch, "The Evelyn", "hotel",
+                 "The Evelyn", {"wikidata": "Q999"})
+    assert "wikidata" not in p                            # item not named for it
+
+
+def test_item_without_an_image_is_still_accepted(tmp_path, monkeypatch):
+    monkeypatch.setitem(LABELS, "Q997", ("Brooklyn Bridge", []))
+    p = _run_one(tmp_path, monkeypatch, "Brooklyn Bridge walk", "public",
+                 "Brooklyn Bridge", {"wikidata": "Q997"})
+    assert p["wikidata"] == "Q997" and "picture" not in p
+    # and from the remembered miss on a rebuild, with no network
+    d = _doc()
+    d["places"] = {"p": _place("Brooklyn Bridge walk", "public", "1535 Broadway, New York, NY 10036")}
+    d["days"][0]["stops"] = [{"place": "p"}]
+    _, doc, fake = run(tmp_path, monkeypatch, FakeNet(fail=["http"]), d)
+    assert doc["places"]["p"]["wikidata"] == "Q997" and fake.calls == []
