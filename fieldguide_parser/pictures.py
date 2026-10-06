@@ -47,6 +47,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -142,6 +143,40 @@ def strip_html(s: str | None) -> str:
 
 # --------------------------------------------------------------- OpenStreetMap
 
+# Words that say what kind of thing a place is, not which one: "Grand
+# Central Terminal" and "Grand Central exterior" share their name, not
+# "terminal". Left out when comparing names, along with filler words.
+GENERIC_WORDS = {
+    "the", "a", "an", "of", "at", "and", "in", "on", "to", "for", "by", "de",
+    "la", "le", "les", "du", "des", "el", "st", "saint",
+    "museum", "gallery", "terminal", "station", "airport", "international",
+    "hotel", "park", "square", "street", "avenue", "road", "market", "bridge",
+    "church", "temple", "shrine", "building", "tower", "center", "centre",
+    "exterior", "interior", "start", "end", "visit", "walk", "lunch",
+    "dinner", "breakfast", "coffee", "optional",
+}
+
+
+def name_words(name: str | None) -> set[str]:
+    """A name's significant words: accents and case folded, punctuation
+    gone, filler and kind-of-place words dropped."""
+    s = unicodedata.normalize("NFKD", name or "")
+    s = "".join(c for c in s if not unicodedata.combining(c)).casefold()
+    s = s.replace("'", "").replace("’", "")
+    return {w for w in re.split(r"[^0-9a-z]+", s) if w and w not in GENERIC_WORDS}
+
+
+# The OSM object's names compared with the place's (namedetails keys).
+NAME_KEYS = ("name", "name:en", "short_name", "short_name:en", "alt_name",
+             "alt_name:en", "official_name", "official_name:en")
+
+
+def names_match(a: str | None, b: str | None) -> bool:
+    """One name's significant words all appear in the other's."""
+    wa, wb = name_words(a), name_words(b)
+    return bool(wa and wb) and (wa <= wb or wb <= wa)
+
+
 def can_picture(category: str, qid: str | None) -> bool:
     """A stored picture needs the place's own Wikidata item, whatever the
     category. A NO_PICTURE place (a street corner, a hotel) has no picture
@@ -156,7 +191,10 @@ def osm_record(hit: dict) -> dict:
     klass = (hit.get("category") or hit.get("class") or "").lower()
     typ = (hit.get("type") or "").lower()
     whole_area = klass == "boundary" or (klass == "place" and typ in NOT_A_PLACE_TYPES)
-    rec = {"wikidata": None if whole_area else (tags.get("wikidata") or None),
+    nd = hit.get("namedetails") or {}
+    names = [hit.get("name")] + [nd.get(k) for k in NAME_KEYS]
+    rec = {"names": [n for n in dict.fromkeys(names) if n],
+           "wikidata": None if whole_area else (tags.get("wikidata") or None),
            "website": tags.get("website") or tags.get("contact:website") or None,
            "cc": ((hit.get("address") or {}).get("country_code") or "").lower() or None,
            "checked": today()}
@@ -172,7 +210,8 @@ def osm_id_of(hit: dict) -> str | None:
 
 def lookup_osm(osm_id: str, net: Net) -> dict | None:
     data = net.json(NOMINATIM_LOOKUP, {"osm_ids": osm_id, "format": "jsonv2",
-                                       "extratags": "1", "addressdetails": "1"})
+                                       "extratags": "1", "addressdetails": "1",
+                                       "namedetails": "1"})
     return data[0] if data else None
 
 
@@ -180,7 +219,8 @@ def search_osm(query: str, near: tuple[float, float], net: Net) -> dict | None:
     """A hand-verified pin has no OSM id: search the place's own query and
     accept only a hit sitting on the pin."""
     data = net.json(NOMINATIM_SEARCH, {"q": query, "format": "jsonv2", "limit": "5",
-                                       "extratags": "1", "addressdetails": "1"})
+                                       "extratags": "1", "addressdetails": "1",
+                                       "namedetails": "1"})
     for hit in data or []:
         try:
             pt = (float(hit["lat"]), float(hit["lon"]))
@@ -224,7 +264,8 @@ def place_osm(place: dict, geo: dict, cache: dict, net: Net) -> dict | None:
         return None
     # A record with a Wikidata item stays; one without is re-checked after
     # MISS_DAYS (OSM gets edited).
-    if rec is None or "miss" in rec or (not rec.get("wikidata") and expired(rec.get("checked"))):
+    if (rec is None or "miss" in rec or "names" not in rec
+            or (not rec.get("wikidata") and expired(rec.get("checked")))):
         hit = lookup_osm(osm_id, net)
         if hit is None:
             osm_cache[osm_id] = {"miss": today()}
@@ -241,15 +282,20 @@ def best_claim(claims: list) -> dict | None:
     return ok[0] if ok else None
 
 
-def p18_file(qid: str, net: Net) -> str | None:
+def item_entity(qid: str, net: Net) -> tuple[str | None, list[str]]:
+    """A Wikidata item's main image (P18) and its English label + aliases."""
     data = net.json(WIKIDATA_API, {"action": "wbgetentities", "ids": qid,
-                                   "props": "claims", "format": "json"})
+                                   "props": "claims|labels|aliases",
+                                   "languages": "en", "format": "json"})
     ent = (data.get("entities") or {}).get(qid) or {}
+    names = [((ent.get("labels") or {}).get("en") or {}).get("value")]
+    names += [a.get("value") for a in (ent.get("aliases") or {}).get("en") or []]
+    names = [n for n in names if n]
     claim = best_claim((ent.get("claims") or {}).get("P18"))
     try:
-        return claim["mainsnak"]["datavalue"]["value"]
+        return claim["mainsnak"]["datavalue"]["value"], names
     except (TypeError, KeyError):
-        return None
+        return None, names
 
 
 def commons_info(file_name: str, net: Net) -> dict | None:
@@ -287,18 +333,29 @@ def file_picture(file_name: str, cache: dict, net: Net) -> dict | None:
     return rec
 
 
-def item_picture(qid: str, cache: dict, net: Net) -> dict | None:
-    """The Commons record of a Wikidata item's main image, or None."""
+def item_record(qid: str, cache: dict, net: Net) -> dict | None:
+    """{file, names} of a Wikidata item with a main image, or None."""
     wc = cache.setdefault("wikidata", {})
     rec = wc.get(qid)
     if fresh_miss(rec):
         return None
-    if rec is None or "miss" in rec:
-        name = p18_file(qid, net)
+    if rec is None or "miss" in rec or "names" not in rec:
+        name, names = item_entity(qid, net)
         if not name:
             wc[qid] = {"miss": today()}
             return None
-        rec = wc[qid] = {"file": name}
+        rec = wc[qid] = {"file": name, "names": names}
+    return rec
+
+
+def item_picture(qid: str, cache: dict, net: Net, must_match: str | None = None) -> dict | None:
+    """The Commons record of a Wikidata item's main image, or None. With
+    must_match, the item's English label or an alias must match that name."""
+    rec = item_record(qid, cache, net)
+    if rec is None:
+        return None
+    if must_match is not None and not any(names_match(must_match, n) for n in rec["names"]):
+        return None
     return file_picture(rec["file"], cache, net)
 
 
@@ -405,6 +462,12 @@ class Run:
             return
         osm = self.soft(f"{trip_id}/{pid} OpenStreetMap", place_osm,
                         place, self.geo, self.cache, self.net)
+        # The pin can land on a different object than the stop (an address
+        # that is also Times Square). Its name must resemble the place's, or
+        # neither its website nor its item belongs to this place.
+        if osm and not any(names_match(place.get("name"), n) for n in osm.get("names") or []):
+            self.counts["name mismatch"] += 1
+            osm = None
         if osm and osm.get("website"):
             place["website"] = osm["website"]
             self.counts["website"] += 1
@@ -415,8 +478,11 @@ class Run:
             self.counts["left for live sources" if cat not in NO_PICTURE
                         else "none by category"] += 1
         else:
+            # A NO_PICTURE place (a hotel, a corner) only gets the item's
+            # picture when the item is named for it.
+            must = (place.get("name") or "") if cat in NO_PICTURE else None
             rec = self.soft(f"{trip_id}/{pid} Wikidata {qid}", item_picture,
-                            qid, self.cache, self.net)
+                            qid, self.cache, self.net, must)
             src = rec and self.soft(f"{trip_id}/{pid} download", download,
                                     rec, trip_id, pid, self.args.images, self.net)
             if src:
@@ -532,6 +598,7 @@ def main() -> int:
           f"{c['website']} websites; {c['hand-picked']} hand-picked, "
           f"{c['left for live sources']} left for the live sources, "
           f"{c['none by category']} none by category, "
+          f"{c['name mismatch']} pins on a differently named object, "
           f"{c['wikidata, no picture']} items with no usable image "
           f"({run.net.throttle.calls} requests)")
     if run.capped:

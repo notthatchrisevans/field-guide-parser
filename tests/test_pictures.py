@@ -51,7 +51,19 @@ OSM = {  # Nominatim lookup by id -> extratags
     "N5": {"contact:website": "https://www.theevelyn.com/"},
     "W6": {"wikidata": "Q639791"},
 }
-P18 = {"Q188740": "MoMA.jpg", "Q125006": "Brooklyn Bridge.jpg", "Q60": "NYC skyline.jpg"}
+OSM_NAMES = {  # the OSM object's own name (+ namedetails)
+    "W1": ("Museum of Modern Art", {"short_name": "MoMA"}),
+    "N2": ("Katz's Delicatessen", {}),
+    "W3": ("Corner", {}),
+    "W4": ("Brooklyn Bridge", {}),
+    "N5": ("The Evelyn", {}),
+    "W6": ("Whitney Museum of American Art", {}),
+}
+P18 = {"Q188740": "MoMA.jpg", "Q125006": "Brooklyn Bridge.jpg", "Q60": "NYC skyline.jpg",
+       "Q11259": "Times Square.jpg", "Q999": "Flatiron.jpg"}
+LABELS = {"Q188740": ("Museum of Modern Art", ["MoMA"]), "Q125006": ("Brooklyn Bridge", []),
+          "Q60": ("New York City", ["NYC"]), "Q11259": ("Times Square", []),
+          "Q999": ("Flatiron Building", [])}
 
 
 class FakeNet:
@@ -67,8 +79,10 @@ class FakeNet:
         if url == P.NOMINATIM_LOOKUP:
             oid = params["osm_ids"]
             tags = OSM.get(oid)
+            name, nd = OSM_NAMES.get(oid, (None, {}))
             hit = [] if tags is None else [{"osm_type": "way", "osm_id": oid[1:],
                                            "class": "tourism", "type": "museum",
+                                           "name": name, "namedetails": {"name": name, **nd},
                                            "extratags": tags,
                                            "address": {"country_code": "us"}}]
             return json.dumps(hit).encode()
@@ -76,7 +90,10 @@ class FakeNet:
             q = params["ids"]
             claims = {"P18": [{"rank": "normal", "mainsnak": {"datavalue": {"value": P18[q]}}}]} \
                 if q in P18 else {}
-            return json.dumps({"entities": {q: {"claims": claims}}}).encode()
+            label, aliases = LABELS.get(q, ("", []))
+            return json.dumps({"entities": {q: {
+                "claims": claims, "labels": {"en": {"value": label}},
+                "aliases": {"en": [{"value": a} for a in aliases]}}}}).encode()
         if url == P.WIKIDATA_API and params["action"] == "wbsearchentities":
             return json.dumps({"search": [{"id": "Q1384"}, {"id": "Q60"}]}).encode()
         if url == P.WIKIDATA_SPARQL:
@@ -161,14 +178,14 @@ def test_miss_remembered(tmp_path, monkeypatch):
     assert "miss" not in cache["osm"]["N2"]           # found, no item: re-checked later
     assert cache["osm"]["N2"]["wikidata"] is None
     # an item with no image is a remembered miss
-    OSM["W3"] = {"wikidata": "Q999"}
+    OSM["W3"] = {"wikidata": "Q998"}
     try:
         (tmp_path / "pc.json").unlink()
         run(tmp_path, monkeypatch)
         cache = json.loads((tmp_path / "pc.json").read_text(encoding="utf-8"))
-        assert "miss" in cache["wikidata"]["Q999"]
+        assert "miss" in cache["wikidata"]["Q998"]
         _, _, fake = run(tmp_path, monkeypatch)
-        assert not any(p and p.get("ids") == "Q999" for _, p in fake.calls)
+        assert not any(p and p.get("ids") == "Q998" for _, p in fake.calls)
     finally:
         OSM["W3"] = {}
 
@@ -274,3 +291,65 @@ def test_parser_carries_the_chosen_trip_picture():
     text = text.replace("\n---", "\npicture: Manhattan from the Top of the Rock.jpg\n---", 1)
     out = M.build(text)
     assert out["doc"]["trip"]["picture_file"] == "Manhattan from the Top of the Rock.jpg"
+
+
+def _run_one(tmp_path, monkeypatch, name, cat, osm_name, tags):
+    """A one-place trip whose pin is OSM object W9."""
+    d = _doc()
+    d["places"] = {"p": _place(name, cat, "1535 Broadway, New York, NY 10036")}
+    d["days"][0]["stops"] = [{"place": "p"}]
+    monkeypatch.setitem(GEO, "1535 Broadway, New York, NY 10036", {**PIN, "osm": "w9"})
+    monkeypatch.setitem(OSM, "W9", tags)
+    monkeypatch.setitem(OSM_NAMES, "W9", (osm_name, {}))
+    _, doc, _ = run(tmp_path, monkeypatch, None, d, "--soft")
+    return doc["places"]["p"]
+
+
+def test_an_address_pin_on_times_square_is_not_the_marriott(tmp_path, monkeypatch):
+    """The Marriott Marquis' address resolved to the Times Square object:
+    its name, item and website are someone else's."""
+    p = _run_one(tmp_path, monkeypatch, "Start at Marriott Marquis", "public",
+                 "Times Square", {"wikidata": "Q11259", "website": "https://www.timessquarenyc.org/"})
+    assert "picture" not in p and "website" not in p
+
+
+def test_marriott_shape_as_a_hotel_too(tmp_path, monkeypatch):
+    p = _run_one(tmp_path, monkeypatch, "Marriott Marquis", "hotel",
+                 "Times Square", {"wikidata": "Q11259"})
+    assert "picture" not in p
+
+
+def test_any_category_skips_a_differently_named_object(tmp_path, monkeypatch):
+    p = _run_one(tmp_path, monkeypatch, "Katz's", "food",
+                 "Russ & Daughters", {"wikidata": "Q188740", "website": "https://russanddaughters.com/"})
+    assert "picture" not in p and "website" not in p
+
+
+def test_no_picture_category_needs_an_item_named_for_it(tmp_path, monkeypatch):
+    # the OSM object is the hotel, but its wikidata tag points at the
+    # building it stands in: not a picture of the stop
+    p = _run_one(tmp_path, monkeypatch, "The Evelyn", "hotel",
+                 "The Evelyn", {"wikidata": "Q999", "website": "https://www.theevelyn.com/"})
+    assert "picture" not in p
+    assert p["website"] == "https://www.theevelyn.com/"      # the object is right
+
+
+def test_no_picture_category_with_a_matching_item_gets_it(tmp_path, monkeypatch):
+    p = _run_one(tmp_path, monkeypatch, "Walk across the Brooklyn Bridge", "public",
+                 "Brooklyn Bridge", {"wikidata": "Q125006"})
+    assert p["picture"]["page"].endswith("Brooklyn_Bridge.jpg")
+
+
+def test_a_picturable_place_skips_the_label_check(tmp_path, monkeypatch):
+    p = _run_one(tmp_path, monkeypatch, "MoMA", "museum", "MoMA", {"wikidata": "Q999"})
+    assert p["picture"]["page"].endswith("Flatiron.jpg")      # OSM's tag; label not required
+
+
+def test_names_match():
+    assert P.names_match("Caf\u00e9 de Flore", "CAFE DE FLORE")
+    assert P.names_match("Grand Central exterior and concourse", "Grand Central Terminal")
+    assert P.names_match("Orchard at Delancey: tenement streetscape", "Tenement Museum")
+    assert P.names_match("Katz's", "Katz\u2019s Delicatessen")
+    assert not P.names_match("Start at Marriott Marquis", "Times Square")
+    assert not P.names_match("Museum", "Museum")              # nothing significant left
+    assert not P.names_match("Arrive at JFK", "John F. Kennedy International Airport")
