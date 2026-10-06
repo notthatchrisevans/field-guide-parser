@@ -845,18 +845,10 @@ def collect_advisories(days, state) -> list[str]:
     return out
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("markdown", help="filled trip .md in the template dialect")
-    ap.add_argument("--out", default=None,
-                    help="output path (default trips/<trip>/itinerary.json)")
-    ap.add_argument("--strict", action="store_true",
-                    help="advisories (missing if-available links) become errors")
-    args = ap.parse_args()
-
-    with open(args.markdown, encoding="utf-8") as fh:
-        text = fh.read()
-
+def build(text: str, strict: bool = False) -> dict:
+    """The whole check, for any caller (the command line, the planner's
+    Paste from AI): {"doc": itinerary or None, "problems": [(where, detail)],
+    "advisories": [str]}. doc is None whenever there is a problem."""
     state = ParseState()
     meta, days = parse_md(text, state)
 
@@ -873,17 +865,14 @@ def main() -> int:
             state.fail(day["date"] or "?", "day parsed with zero stops")
 
     advisories = collect_advisories(days, state)
-    if args.strict:
+    if strict:
         for a in advisories:
             state.fail("strict", a)
         advisories = []
 
     if state.problems:
-        print(f"\n  {len(state.problems)} PROBLEM(S) -- refusing to write output:\n",
-              file=sys.stderr)
-        for p in state.problems:
-            print(f"  [{p.where}] {p.detail}", file=sys.stderr)
-        return 1
+        return {"doc": None, "problems": [(p.where, p.detail) for p in state.problems],
+                "advisories": advisories}
 
     places = {p["id"]: {k: v for k, v in p.items() if k != "id"}
               for p in state.places.values()}
@@ -902,6 +891,30 @@ def main() -> int:
     }
     if meta.get("_travelers"):
         doc["trip"]["travelers"] = meta["_travelers"]
+    return {"doc": doc, "problems": [], "advisories": advisories}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("markdown", help="filled trip .md in the template dialect")
+    ap.add_argument("--out", default=None,
+                    help="output path (default trips/<trip>/itinerary.json)")
+    ap.add_argument("--strict", action="store_true",
+                    help="advisories (missing if-available links) become errors")
+    args = ap.parse_args()
+
+    with open(args.markdown, encoding="utf-8") as fh:
+        text = fh.read()
+
+    res = build(text, strict=args.strict)
+    if res["problems"]:
+        print(f"\n  {len(res['problems'])} PROBLEM(S) -- refusing to write output:\n",
+              file=sys.stderr)
+        for where, detail in res["problems"]:
+            print(f"  [{where}] {detail}", file=sys.stderr)
+        return 1
+    doc, advisories = res["doc"], res["advisories"]
+    days, places = doc["days"], doc["places"]
 
     import os
     # Default output is relative to the CALLER's working directory — never
@@ -909,7 +922,7 @@ def main() -> int:
     # vendored-script era resolved against __file__, and the extraction
     # silently sent output into the package tree; found 2026-09-15.)
     out = args.out or os.path.join(
-        os.getcwd(), "trips", meta["trip"], "itinerary.json")
+        os.getcwd(), "trips", doc["trip"]["id"], "itinerary.json")
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     with open(out, "w", encoding="utf-8") as fh:
         json.dump(doc, fh, ensure_ascii=False, indent=2)
