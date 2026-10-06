@@ -13,6 +13,17 @@ off by default so the app's behaviour is unchanged:
             an implausible pin is CLEARED back to null (a blank beats a wrong
             pin), both are listed, and the exit code is 0. A trip still
             publishes; its map lists those stops as "not on map".
+Since 2026-10-06 (walks), two more, on by default:
+  corners   a stop Nominatim can't find whose query names two streets
+            ("Seventh Avenue and West 47th Street", "Corner of X and Y", or
+            a segment "X to Y" next to a stop naming the cross street) is
+            pinned at the OSM node the two streets share, via Overpass
+            (intersections.py). coord_confidence "intersection". Off with
+            --no-corners.
+  per day   a pin more than --day-km (8) from the middle of that day's other
+            pins (days with at least 3 others) is implausible -- the nearest
+            pin anywhere in the trip can't catch "Chelsea Market" landing in
+            Pelham, 26 km out, when the whole trip is one city. 0 = off.
 
 Design rules, from CLAUDE.md:
 
@@ -64,6 +75,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+from . import intersections as X
 
 NOMINATIM = "https://nominatim.openstreetmap.org/search"
 
@@ -407,6 +420,274 @@ def check_plausible_nearest(doc: dict, max_km: float) -> list[tuple[str, str]]:
     return bad
 
 
+DAY_KM = 8.0
+
+
+def _pin(place: dict) -> tuple[float, float] | None:
+    c = place.get("coords")
+    return (c["lat"], c["lng"]) if c else None
+
+
+def _median_pt(pts) -> tuple[float, float]:
+    pts = list(pts)
+    return (statistics.median(p[0] for p in pts), statistics.median(p[1] for p in pts))
+
+
+def _day_pids(day: dict, places: dict) -> list[str]:
+    return list(dict.fromkeys(s.get("place") for s in day.get("stops", [])
+                              if s.get("place") in places))
+
+
+def check_plausible_day(doc: dict, max_km: float = DAY_KM, min_others: int = 3
+                        ) -> list[tuple[str, str]]:
+    """A pin is implausible when it sits more than max_km from the median of
+    its DAY's other pins (days with at least min_others of them) -- on every
+    day it appears where the rule applies. A hotel on a day trip still
+    passes on its other days; a market geocoded into the next county, on a
+    day of walking one neighbourhood, fails."""
+    places = doc.get("places", {})
+    verdicts: dict[str, list] = {}
+    for day in doc.get("days", []):
+        pts = {p: _pin(places[p]) for p in _day_pids(day, places) if _pin(places[p])}
+        for pid, pt in pts.items():
+            others = [q for o, q in pts.items() if o != pid]
+            if len(others) < min_others:
+                continue
+            med = _median_pt(others)
+            km = haversine_km(med, pt)
+            verdicts.setdefault(pid, []).append((km <= max_km, km, day.get("date"), med, pt))
+    bad = []
+    for pid, vs in sorted(verdicts.items()):
+        if not any(v[0] for v in vs):
+            _, km, date, med, pt = min(vs, key=lambda v: v[1])
+            bad.append((pid, f"{km:,.1f} km from the middle of {date}'s other stops "
+                             f"({med[0]:.4f}, {med[1]:.4f}) -- pin is "
+                             f"{pt[0]:.6f}, {pt[1]:.6f}"))
+    return bad
+
+
+# ------------------------------------------------------------ street corners
+
+def _walk_neighbours(doc: dict) -> dict[str, list[str]]:
+    """pid -> the places just before and after it, in its walk's order when
+    the stop is on a walk, else in the day's order."""
+    places = doc.get("places", {})
+    out: dict[str, list[str]] = {}
+    for day in doc.get("days", []):
+        stops = day.get("stops", [])
+        routes = day.get("routes") or {}
+        for i, stop in enumerate(stops):
+            pid = stop.get("place")
+            if pid not in places:
+                continue
+            r = routes.get(stop.get("route")) if isinstance(routes, dict) else None
+            seq = [j for j in (r or {}).get("stops", [])
+                   if isinstance(j, int) and 0 <= j < len(stops)]
+            if i not in seq:
+                seq = list(range(len(stops)))
+            k = seq.index(i)
+            for j in (seq[k - 1] if k > 0 else None, seq[k + 1] if k + 1 < len(seq) else None):
+                if j is not None and stops[j].get("place") in places:
+                    out.setdefault(pid, []).append(stops[j]["place"])
+    return out
+
+
+def _streets_named(place: dict) -> list[str]:
+    found = []
+    for parsed in (X.parse_streets(place.get("maps_query") or ""),
+                   X.parse_streets(place.get("name") or "", strict=True)):
+        if parsed:
+            found += [parsed[1], parsed[2]]
+    return found
+
+
+# Overpass is a shared volunteer service and is sometimes overloaded (HTTP
+# 504). After this many failed lookups in a row the run stops asking -- a
+# build never waits half an hour on it; the next build picks up the rest.
+OVERPASS_GIVE_UP = 3
+
+
+class _Run:
+    """What one fg-geocode run shares: the cache, the budget, notes."""
+    def __init__(self, args, cache: dict, throttle: "Throttle"):
+        self.args, self.cache, self.throttle = args, cache, throttle
+        self.new = 0
+        self.capped = False
+        self.notes: list[str] = []
+        self.overpass_fails = 0          # in a row; OVERPASS_GIVE_UP stops asking
+
+    def budget_left(self) -> bool:
+        if self.args.max_new and self.new >= self.args.max_new:
+            self.capped = True
+            return False
+        return True
+
+
+def area_lookup(query: str, ua: str, throttle: "Throttle") -> dict | None:
+    """A locality's centre and its own bounding box from Nominatim, as
+    {lat, lng, bbox: [s, w, n, e]}, or None."""
+    throttle.wait()
+    res = nominatim_once(query, country_code(query), ua)
+    if not res:
+        return None
+    rec = {"lat": round(float(res["lat"]), 6), "lng": round(float(res["lon"]), 6)}
+    bb = res.get("boundingbox")
+    if bb and len(bb) == 4:
+        s, n, w, e = (float(v) for v in bb)
+        rec["bbox"] = [round(s, 5), round(w, 5), round(n, 5), round(e, 5)]
+    return rec
+
+
+AREA_MAX_HALF_KM = 12.0
+
+
+def _area_box(query: str, run: _Run):
+    """(bbox, centre) of a locality ('Manhattan, NY'), cached as 'area: ...'
+    in the geocode cache. A sprawling area is cut to 12 km around its
+    centre, so the Overpass query stays small. None when unknown."""
+    key = f"area: {query}"
+    rec = run.cache.get(key)
+    if rec and rec.get("miss"):
+        if not miss_expired(rec["miss"]):
+            return None
+        rec = None
+    if rec is None:
+        if not run.budget_left():
+            return None
+        rec = area_lookup(query, run.args.user_agent, run.throttle)
+        run.new += 1
+        run.cache[key] = rec or {"miss": time.strftime("%Y-%m-%d")}
+        save_json(run.args.cache, run.cache)
+    if not rec or "lat" not in rec:
+        return None
+    c = (rec["lat"], rec["lng"])
+    cap = _km_box(c, AREA_MAX_HALF_KM)
+    bb = rec.get("bbox") or list(_km_box(c, 6.0))
+    box = (max(bb[0], cap[0]), max(bb[1], cap[1]), min(bb[2], cap[2]), min(bb[3], cap[3]))
+    return box, c
+
+
+def _km_box(centre: tuple[float, float], half_km: float):
+    dlat = half_km / 111.0
+    dlng = half_km / (111.0 * max(0.2, math.cos(math.radians(centre[0]))))
+    return (centre[0] - dlat, centre[1] - dlng, centre[0] + dlat, centre[1] + dlng)
+
+
+def day_box(doc: dict, pid: str):
+    """(bbox, reference point) around the other pins of the day(s) the place
+    is on, or None. The box is built round the densest cluster -- the pin
+    with the most others within 3 km, and whatever is within 8 km of it --
+    so an airport or a wrong pin on the same day can't drag it away."""
+    places = doc.get("places", {})
+    pts = []
+    for day in doc.get("days", []):
+        pids = _day_pids(day, places)
+        if pid in pids:
+            pts += [_pin(places[o]) for o in pids if o != pid and _pin(places[o])]
+    if not pts:
+        return None
+    med = _median_pt(pts)
+    anchor = max(pts, key=lambda p: (sum(haversine_km(p, q) <= 3 for q in pts),
+                                     -haversine_km(p, med)))
+    pts = [p for p in pts if haversine_km(anchor, p) <= 8]
+    s, w, _, _ = _km_box((min(p[0] for p in pts), min(p[1] for p in pts)), 1.5)
+    _, _, n, e = _km_box((max(p[0] for p in pts), max(p[1] for p in pts)), 1.5)
+    return (s, w, n, e), _median_pt(pts)
+
+
+def search_boxes(doc: dict, pid: str, run: _Run) -> list:
+    """Where to look for a corner, in order: around the day's pins, then the
+    query's own locality (or the trip's city). A corner missed in the first
+    gets a second chance in the second before a miss is remembered."""
+    out = []
+    near = day_box(doc, pid)
+    if near:
+        out.append(near)
+    trip = doc.get("trip") or {}
+    for q in (X.locality(doc["places"][pid].get("maps_query") or ""), trip.get("city")):
+        area = _area_box(q, run) if q else None
+        if area:
+            out.append((area[0], near[1] if near else area[1]))
+            break
+    return out
+
+
+def pin_corners(doc: dict, overrides: dict, run: _Run) -> int:
+    """Pin the street corners Nominatim couldn't. Returns how many pinned."""
+    places = doc.get("places", {})
+    trip = doc.get("trip") or {}
+    neighbours = _walk_neighbours(doc)
+    pinned = 0
+    for pid, place in places.items():
+        query = place.get("maps_query") or ""
+        if query in overrides:
+            continue
+        from_query = X.parse_streets(query)
+        # A Nominatim hit for a two-street query is one of the streets (or a
+        # same-named street in another state), never the corner: replace it.
+        if place.get("coords") and not (
+                from_query and from_query[0] == "pair"
+                and place.get("coord_confidence") in ("street", "area")):
+            continue
+        parsed = from_query or X.parse_streets(place.get("name") or "", strict=True)
+        if not parsed:
+            continue
+        kind, a, b = parsed
+        if kind == "pair":
+            pairs = [(a, b)]
+        else:
+            skip = {X.canon_street(a), X.canon_street(b)}
+            cross: list[str] = []
+            for nb in neighbours.get(pid, []):
+                for z in _streets_named(places[nb]):
+                    if X.canon_street(z) not in skip:
+                        skip.add(X.canon_street(z))
+                        cross.append(z)
+            pairs = [(a, z) for z in cross]
+            if not pairs:
+                run.notes.append(f"{pid}: segment {a!r} to {b!r} -- no stop beside it "
+                                 f"names the cross street; skipped")
+                continue
+        where = X.locality(query) or trip.get("city") or ""
+        boxes = None
+        for x, y in pairs:
+            key = X.cache_key(x, y, where)
+            rec = run.cache.get(key)
+            if rec and rec.get("miss"):
+                if not miss_expired(rec["miss"]):
+                    continue
+                rec = None
+            if rec is None:
+                if not run.budget_left() or run.overpass_fails >= OVERPASS_GIVE_UP:
+                    break
+                if boxes is None:
+                    boxes = search_boxes(doc, pid, run)
+                if not boxes:
+                    run.notes.append(f"{pid}: no area to search for {x!r} & {y!r}")
+                    break
+                try:
+                    for bbox, ref in boxes:
+                        rec = X.find_corner(x, y, bbox, ref, run.args.user_agent, run.throttle)
+                        if rec:
+                            break
+                except X.OverpassError as e:
+                    run.overpass_fails += 1
+                    run.notes.append(f"{pid}: {e} -- not cached; next build retries")
+                    if run.overpass_fails == OVERPASS_GIVE_UP:
+                        run.notes.append(f"Overpass failed {OVERPASS_GIVE_UP} times in a row: "
+                                         "no more corner lookups this run")
+                    break
+                run.overpass_fails = 0
+                run.new += 1
+                run.cache[key] = rec or {"miss": time.strftime("%Y-%m-%d")}
+                save_json(run.args.cache, run.cache)
+            if rec and "lat" in rec:
+                apply_record(place, rec)
+                pinned += 1
+                break
+    return pinned
+
+
 MISS_DAYS = 30
 
 
@@ -428,6 +709,10 @@ def main() -> int:
     ap.add_argument("--sleep", type=float, default=1.1)
     ap.add_argument("--max", type=int, default=0, dest="max_new")
     ap.add_argument("--max-km", type=float, default=80.0, dest="max_km")
+    ap.add_argument("--day-km", type=float, default=DAY_KM, dest="day_km",
+                    help="furthest a pin may sit from the middle of its day's other pins (0 = off)")
+    ap.add_argument("--no-corners", action="store_true",
+                    help="don't pin street corners through Overpass")
     ap.add_argument("--user-agent", default=DEFAULT_UA)
     ap.add_argument("--nearest", action="store_true",
                     help="judge each pin by its nearest other pin, for trips over several cities")
@@ -439,11 +724,10 @@ def main() -> int:
     overrides = {k: v for k, v in load_cache(args.overrides).items()
                  if not k.startswith("_")}
     throttle = Throttle(args.sleep)
-    new_geocodes = 0
-    resolved = warned = from_cache = overridden = 0
+    run = _Run(args, cache, throttle)
+    resolved = warned = from_cache = overridden = corners = 0
     unresolved: list[tuple[str, str]] = []
     implausible: list[tuple[str, str]] = []
-    capped = False
 
     for itin_path in args.itineraries:
         with open(itin_path, encoding="utf-8") as fh:
@@ -453,11 +737,12 @@ def main() -> int:
         TRIP_COUNTRY = CURRENCY_COUNTRY.get(str(cur.get("local") or "").upper())
         places = doc.get("places", {})
         changed = False
+        missing: list[tuple[str, str]] = []
 
         for pid, place in places.items():
             query = place.get("maps_query")
             if not query:
-                unresolved.append((pid, "no maps_query on place"))
+                missing.append((pid, "no maps_query on place"))
                 continue
 
             # A hand-verified pin wins over anything the geocoder found, and
@@ -480,17 +765,16 @@ def main() -> int:
             # OpenStreetMap the same unanswerable question every time.
             if rec is not None and rec.get("miss"):
                 if not miss_expired(rec["miss"]):
-                    unresolved.append((pid, f"no match for {query!r} (remembered miss)"))
+                    missing.append((pid, f"no match for {query!r} (remembered miss)"))
                     continue
                 rec = None
             if rec is None:
-                if args.max_new and new_geocodes >= args.max_new:
-                    capped = True
+                if not run.budget_left():
                     continue
                 rec = geocode_query(query, args.user_agent, throttle)
-                new_geocodes += 1
+                run.new += 1
                 if rec is None:
-                    unresolved.append((pid, f"no match for {query!r}"))
+                    missing.append((pid, f"no match for {query!r}"))
                     cache[query] = {"miss": time.strftime("%Y-%m-%d")}
                     save_json(args.cache, cache)
                     continue
@@ -505,6 +789,14 @@ def main() -> int:
             if rec.get("confidence", "exact") != "exact":
                 warned += 1
 
+        # Street corners: what Nominatim couldn't place (or placed on one of
+        # the two streets), pinned where the two streets meet.
+        if not args.no_corners:
+            n = pin_corners(doc, overrides, run)
+            corners += n
+            changed = changed or n > 0
+        unresolved += [(pid, why) for pid, why in missing if not places[pid].get("coords")]
+
         if changed:
             save_json(itin_path, doc)
             print(f"  wrote {itin_path}")
@@ -513,6 +805,9 @@ def main() -> int:
         # unresolved place does not discard the pins that did resolve.
         bad = (check_plausible_nearest(doc, args.max_km) if args.nearest
                else check_plausible(places, args.max_km))
+        if args.day_km:
+            seen = {pid for pid, _ in bad}
+            bad += [b for b in check_plausible_day(doc, args.day_km) if b[0] not in seen]
         for pid, why in bad:
             implausible.append((f"{doc['trip']['id']}/{pid}", why))
             if args.soft:                      # a blank beats a wrong pin
@@ -521,12 +816,14 @@ def main() -> int:
         if args.soft and bad:
             save_json(itin_path, doc)
 
-    print(f"\nOK  {resolved} resolved "
-          f"({from_cache} from cache, {new_geocodes} newly geocoded via "
-          f"{throttle.calls} requests, {overridden} hand-verified), "
-          f"{warned} flagged for review")
-    if capped:
+    print(f"\nOK  {resolved + corners} resolved "
+          f"({from_cache} from cache, {run.new} new lookups via "
+          f"{throttle.calls} requests, {overridden} hand-verified, "
+          f"{corners} street corners), {warned} flagged for review")
+    if run.capped:
         print(f"    --max {args.max_new} reached; rerun to finish the rest")
+    for note in run.notes:
+        print(f"    corner: {note}")
 
     if implausible:
         print(f"\n  {len(implausible)} IMPLAUSIBLE pin(s) -- precise, but not "
