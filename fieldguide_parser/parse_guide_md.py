@@ -891,6 +891,10 @@ def build(text: str, strict: bool = False) -> dict:
     }
     if meta.get("_travelers"):
         doc["trip"]["travelers"] = meta["_travelers"]
+    # `picture: <Commons file name>` -- the trip picture chosen with "Change
+    # picture"; fg-pictures uses it before the city's own image.
+    if meta.get("picture"):
+        doc["trip"]["picture_file"] = meta["picture"]
     return {"doc": doc, "problems": [], "advisories": advisories}
 
 
