@@ -73,7 +73,8 @@ def test_without_soft_the_old_strict_exit_stands(tmp_path, monkeypatch):
 def test_country_bias_from_the_trip_currency(tmp_path, monkeypatch):
     _, _, seen = run(tmp_path, monkeypatch, "--soft", "--nearest")
     assert {cc for _, cc in seen} == {"jp"}
-    _, _, seen = run(tmp_path, monkeypatch, "--soft", "--nearest", currency="EUR")
+    (tmp_path / "eur").mkdir()
+    _, _, seen = run(tmp_path / "eur", monkeypatch, "--soft", "--nearest", currency="EUR")
     assert {cc for _, cc in seen} == {None}
 
 
@@ -82,3 +83,16 @@ def test_us_zip_tail():
     assert G.country_code("Katz's Delicatessen, 205 E Houston St, New York, NY 10002") == "us"
     assert G.country_code("Somewhere, Japan") == "jp"
     G.TRIP_COUNTRY = None
+
+
+def test_a_miss_is_remembered_not_asked_again(tmp_path, monkeypatch):
+    run(tmp_path, monkeypatch, "--soft", "--nearest")
+    cache = json.loads((tmp_path / "c.json").read_text(encoding="utf-8"))
+    assert "miss" in cache["Nowhere Place, Kyoto"]
+    # second run: same cache, no network question for the miss
+    itin = tmp_path / "itinerary.json"
+    itin.write_text(json.dumps(_doc()), encoding="utf-8")
+    seen = []
+    monkeypatch.setattr(G, "geocode_query", _fake(seen))
+    assert G.main() == 0
+    assert not any(q.startswith("Nowhere") for q, _ in seen)

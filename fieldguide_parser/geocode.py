@@ -407,6 +407,16 @@ def check_plausible_nearest(doc: dict, max_km: float) -> list[tuple[str, str]]:
     return bad
 
 
+MISS_DAYS = 30
+
+
+def miss_expired(day: str) -> bool:
+    try:
+        return time.time() - time.mktime(time.strptime(day, "%Y-%m-%d")) > MISS_DAYS * 86400
+    except ValueError:
+        return True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("itineraries", nargs="+", help="itinerary.json file(s)")
@@ -466,6 +476,13 @@ def main() -> int:
                 continue
 
             rec = cache.get(query)
+            # A miss is remembered too, for MISS_DAYS: a rebuild doesn't ask
+            # OpenStreetMap the same unanswerable question every time.
+            if rec is not None and rec.get("miss"):
+                if not miss_expired(rec["miss"]):
+                    unresolved.append((pid, f"no match for {query!r} (remembered miss)"))
+                    continue
+                rec = None
             if rec is None:
                 if args.max_new and new_geocodes >= args.max_new:
                     capped = True
@@ -474,6 +491,8 @@ def main() -> int:
                 new_geocodes += 1
                 if rec is None:
                     unresolved.append((pid, f"no match for {query!r}"))
+                    cache[query] = {"miss": time.strftime("%Y-%m-%d")}
+                    save_json(args.cache, cache)
                     continue
                 cache[query] = rec
                 save_json(args.cache, cache)  # persist immediately; resumable
