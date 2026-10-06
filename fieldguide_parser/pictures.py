@@ -20,12 +20,13 @@ Design rules:
     id), checked against the place's current coords. A hand-verified pin
     with no OSM id gets a Nominatim search whose hit must sit within
     MATCH_M of that pin, or nothing.
-  * Names must agree. The pinned OSM object's name (or an alt/short name)
-    must resemble the place's name, or neither its website nor its item is
-    used: an address pin can land on a different object (1535 Broadway is
-    the Marriott Marquis, but OSM handed back Times Square). For NO_PICTURE
-    categories the Wikidata item's English label or an alias must match the
-    place's name too.
+  * A picture may show the area, not the place (Chris, 10/6): the item of
+    the OSM object at the pin is accepted whatever its name ("Start at
+    Marriott Marquis" pinned on Times Square gets Times Square). Never a
+    city or admin-level item, and never an object off the pin.
+  * The website must be the place's own: it is kept only when the OSM
+    object's name (or an alt/short name) resembles the place's name -- a
+    different business's site would show another cafe's photos.
   * Hand-picked wins: a place that a stop already shows a kept `image:` for
     is left alone.
   * Places to photograph, not to recognise (NO_PICTURE categories) get no
@@ -352,17 +353,9 @@ def item_record(qid: str, cache: dict, net: Net) -> dict:
     return rec
 
 
-def item_named_for(rec: dict, name: str | None) -> bool:
-    """The item's English label or an alias matches the place's name."""
-    return any(names_match(name, n) for n in rec.get("names") or [])
-
-
-def item_picture(qid: str, cache: dict, net: Net, must_match: str | None = None) -> dict | None:
-    """The Commons record of a Wikidata item's main image, or None. With
-    must_match, the item's English label or an alias must match that name."""
+def item_picture(qid: str, cache: dict, net: Net) -> dict | None:
+    """The Commons record of a Wikidata item's main image, or None."""
     rec = item_record(qid, cache, net)
-    if must_match is not None and not item_named_for(rec, must_match):
-        return None
     if not rec.get("file"):
         return None
     return file_picture(rec["file"], cache, net)
@@ -472,14 +465,14 @@ class Run:
         osm = self.soft(f"{trip_id}/{pid} OpenStreetMap", place_osm,
                         place, self.geo, self.cache, self.net)
         # The pin can land on a different object than the stop (an address
-        # that is also Times Square). Its name must resemble the place's, or
-        # neither its website nor its item belongs to this place.
-        if osm and not any(names_match(place.get("name"), n) for n in osm.get("names") or []):
-            self.counts["name mismatch"] += 1
-            osm = None
+        # that is also Times Square). Its picture may still serve as the
+        # area's; its website only when the names agree.
         if osm and osm.get("website"):
-            place["website"] = osm["website"]
-            self.counts["website"] += 1
+            if any(names_match(place.get("name"), n) for n in osm.get("names") or []):
+                place["website"] = osm["website"]
+                self.counts["website"] += 1
+            else:
+                self.counts["website name mismatch"] += 1
         qid = (osm or {}).get("wikidata")
         if not can_picture(cat, qid):
             # A picturable place is left for the live sources (website,
@@ -487,13 +480,11 @@ class Run:
             self.counts["left for live sources" if cat not in NO_PICTURE
                         else "none by category"] += 1
         else:
-            # A NO_PICTURE place (a hotel, a corner) only takes the item when
-            # it is named for it. An accepted item is written as
-            # place.wikidata: the droplet's landmark exception reads it.
+            # An accepted item is written as place.wikidata: the droplet's
+            # landmark exception reads it.
             item = self.soft(f"{trip_id}/{pid} Wikidata {qid}", item_record,
                              qid, self.cache, self.net)
-            accepted = item is not None and (cat not in NO_PICTURE
-                                             or item_named_for(item, place.get("name")))
+            accepted = item is not None
             if accepted:
                 place["wikidata"] = qid
                 self.counts["wikidata"] += 1
@@ -616,7 +607,7 @@ def main() -> int:
           f"{c['website']} websites; {c['hand-picked']} hand-picked, "
           f"{c['left for live sources']} left for the live sources, "
           f"{c['none by category']} none by category, "
-          f"{c['name mismatch']} pins on a differently named object, "
+          f"{c['website name mismatch']} websites of a differently named object skipped, "
           f"{c['wikidata, no picture']} items with no usable image "
           f"({run.net.throttle.calls} requests)")
     if run.capped:

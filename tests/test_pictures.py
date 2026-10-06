@@ -305,44 +305,61 @@ def _run_one(tmp_path, monkeypatch, name, cat, osm_name, tags):
     return doc["places"]["p"]
 
 
-def test_an_address_pin_on_times_square_is_not_the_marriott(tmp_path, monkeypatch):
-    """The Marriott Marquis' address resolved to the Times Square object:
-    its name, item and website are someone else's."""
+def test_an_address_pin_on_times_square_gives_the_marriott_its_area(tmp_path, monkeypatch):
+    """Chris, 10/6: an area picture counts. The Marriott Marquis' address
+    resolved to the Times Square object: its picture is taken, its website
+    is not (it is Times Square's, not the hotel's)."""
     p = _run_one(tmp_path, monkeypatch, "Start at Marriott Marquis", "public",
                  "Times Square", {"wikidata": "Q11259", "website": "https://www.timessquarenyc.org/"})
-    assert "picture" not in p and "website" not in p
+    assert p["picture"]["page"].endswith("Times_Square.jpg")
+    assert p["wikidata"] == "Q11259"
+    assert "website" not in p
 
 
 def test_marriott_shape_as_a_hotel_too(tmp_path, monkeypatch):
     p = _run_one(tmp_path, monkeypatch, "Marriott Marquis", "hotel",
                  "Times Square", {"wikidata": "Q11259"})
-    assert "picture" not in p
+    assert p["picture"]["page"].endswith("Times_Square.jpg")
 
 
-def test_any_category_skips_a_differently_named_object(tmp_path, monkeypatch):
+def test_jfk_is_accepted(tmp_path, monkeypatch):
+    monkeypatch.setitem(P18, "Q8685", "JFK Aerial.jpg")
+    p = _run_one(tmp_path, monkeypatch, "Arrive at JFK", "airport",
+                 "John F. Kennedy International Airport", {"wikidata": "Q8685"})
+    assert p["picture"]["page"].endswith("JFK_Aerial.jpg") and p["wikidata"] == "Q8685"
+
+
+def test_mismatched_food_place_keeps_its_picture_not_the_website(tmp_path, monkeypatch):
     p = _run_one(tmp_path, monkeypatch, "Katz's", "food",
                  "Russ & Daughters", {"wikidata": "Q188740", "website": "https://russanddaughters.com/"})
-    assert "picture" not in p and "website" not in p
+    assert p["picture"]["page"].endswith("MoMA.jpg")
+    assert "website" not in p
 
 
-def test_no_picture_category_needs_an_item_named_for_it(tmp_path, monkeypatch):
-    # the OSM object is the hotel, but its wikidata tag points at the
-    # building it stands in: not a picture of the stop
+def test_matching_name_keeps_the_website(tmp_path, monkeypatch):
     p = _run_one(tmp_path, monkeypatch, "The Evelyn", "hotel",
                  "The Evelyn", {"wikidata": "Q999", "website": "https://www.theevelyn.com/"})
-    assert "picture" not in p
-    assert p["website"] == "https://www.theevelyn.com/"      # the object is right
+    assert p["website"] == "https://www.theevelyn.com/"
+    assert p["wikidata"] == "Q999"                         # no label check any more
 
 
-def test_no_picture_category_with_a_matching_item_gets_it(tmp_path, monkeypatch):
-    p = _run_one(tmp_path, monkeypatch, "Walk across the Brooklyn Bridge", "public",
-                 "Brooklyn Bridge", {"wikidata": "Q125006"})
-    assert p["picture"]["page"].endswith("Brooklyn_Bridge.jpg")
+def test_a_city_level_object_is_still_ignored(tmp_path, monkeypatch):
+    d = _doc()
+    d["places"] = {"p": _place("Explore New York", "public", "1535 Broadway, New York, NY 10036")}
+    d["days"][0]["stops"] = [{"place": "p"}]
+    monkeypatch.setitem(GEO, "1535 Broadway, New York, NY 10036", {**PIN, "osm": "r9"})
+    city_hit = {"osm_type": "relation", "osm_id": 9, "class": "boundary", "type": "administrative",
+                "name": "New York", "extratags": {"wikidata": "Q60"}}
+    fake = FakeNet()
 
-
-def test_a_picturable_place_skips_the_label_check(tmp_path, monkeypatch):
-    p = _run_one(tmp_path, monkeypatch, "MoMA", "museum", "MoMA", {"wikidata": "Q999"})
-    assert p["picture"]["page"].endswith("Flatiron.jpg")      # OSM's tag; label not required
+    def route(net, url, params=None, accept="application/json"):
+        if url == P.NOMINATIM_LOOKUP and params["osm_ids"] == "R9":
+            fake.calls.append((url, params))
+            return json.dumps([city_hit]).encode()
+        return fake(net, url, params, accept)
+    _, doc, _ = run(tmp_path, monkeypatch, route, d, "--soft")
+    p = doc["places"]["p"]
+    assert "picture" not in p and "wikidata" not in p
 
 
 def test_names_match():
@@ -352,7 +369,7 @@ def test_names_match():
     assert P.names_match("Katz's", "Katz\u2019s Delicatessen")
     assert not P.names_match("Start at Marriott Marquis", "Times Square")
     assert not P.names_match("Museum", "Museum")              # nothing significant left
-    assert not P.names_match("Arrive at JFK", "John F. Kennedy International Airport")
+    assert not P.names_match("Arrive at JFK", "John F. Kennedy International Airport")   # only gates websites
 
 
 def test_accepted_item_is_written_as_place_wikidata(tmp_path, monkeypatch):
@@ -361,15 +378,6 @@ def test_accepted_item_is_written_as_place_wikidata(tmp_path, monkeypatch):
     assert p["moma"]["wikidata"] == "Q188740"
     assert p["bridge"]["wikidata"] == "Q125006"           # landmark exception
     assert "wikidata" not in p["katz"] and "wikidata" not in p["corner"]
-
-
-def test_rejected_item_is_not_written(tmp_path, monkeypatch):
-    p = _run_one(tmp_path, monkeypatch, "Start at Marriott Marquis", "public",
-                 "Times Square", {"wikidata": "Q11259"})
-    assert "wikidata" not in p                            # wrong OSM object
-    p = _run_one(tmp_path, monkeypatch, "The Evelyn", "hotel",
-                 "The Evelyn", {"wikidata": "Q999"})
-    assert "wikidata" not in p                            # item not named for it
 
 
 def test_item_without_an_image_is_still_accepted(tmp_path, monkeypatch):
