@@ -19,6 +19,12 @@ Design rules:
     id), checked against the place's current coords. A hand-verified pin
     with no OSM id gets a Nominatim search whose hit must sit within
     MATCH_M of that pin, or nothing.
+  * Names must agree. The pinned OSM object's name (or an alt/short name)
+    must resemble the place's name, or neither its website nor its item is
+    used: an address pin can land on a different object (1535 Broadway is
+    the Marriott Marquis, but OSM handed back Times Square). For NO_PICTURE
+    categories the Wikidata item's English label or an alias must match the
+    place's name too.
   * Hand-picked wins: a place that a stop already shows a kept `image:` for
     is left alone.
   * Places to photograph, not to recognise (NO_PICTURE categories) get no
