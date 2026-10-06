@@ -18,6 +18,7 @@ docx = ["python-docx"]
 
 [project.scripts]
 fg-parse = "fieldguide_parser.parse_guide_md:main"
+fg-geocode = "fieldguide_parser.geocode:main"
 
 [tool.setuptools.packages.find]
 include = ["fieldguide_parser*"]
