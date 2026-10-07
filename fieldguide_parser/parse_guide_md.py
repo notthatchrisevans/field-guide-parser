@@ -88,6 +88,10 @@ CLOCK_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
 #   - choice: <id>  /  - default: yes alternatives within a day
 #   - stop: Name [cat]                ordered stop nested under a [route]
 #   - image: <path|none>              + alt / opens / source / credit / date
+# People (Oct 2026): who may open the trip, by sign-in id.
+#   people: chris, debby | everyone   (front matter) -> trip.people
+#                                     (no line -> ["chris"])
+#   example: true                     (front matter) -> trip.example
 PLAN_KEYS = {"who", "choice", "default", "stop", "image", "id"}
 NESTED_KEYS = {"where", "name", "what", "notes", "next", "links", "review",
                "image"}
@@ -199,12 +203,64 @@ def parse_travelers(raw: str | None, state: ParseState) -> list[dict]:
         tid = slugify(name)
         if tid in seen:
             state.fail("front matter", f"travelers: {name!r} appears twice")
+            bad = True
             continue
         seen.add(tid)
         out.append({"id": tid, "name": name})
     if raw.strip() and not out:
         state.fail("front matter", "travelers: is empty")
     return out
+
+
+PERSON_ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+DEFAULT_PEOPLE = ["chris"]
+
+
+def parse_people(raw: str | None, state: ParseState) -> list[str] | str:
+    """`people: chris, debby` -> ["chris", "debby"]; `people: everyone` ->
+    "everyone" (anyone signed in). Who may OPEN the trip -- the sign-in ids,
+    not the display names in `travelers:`. No line -> Chris's only."""
+    if raw is None:
+        return list(DEFAULT_PEOPLE)
+    if raw.strip().lower() == "everyone":
+        return "everyone"
+    out, bad = [], False
+    for part in raw.split(","):
+        pid = part.strip()
+        if not pid:
+            continue
+        if pid == "everyone":
+            state.fail("front matter", "people: `everyone` stands alone, "
+                                       "not in a list")
+            bad = True
+            continue
+        if not PERSON_ID_RE.match(pid):
+            state.fail("front matter", f"people: {pid!r} is not a person id "
+                                       f"(lowercase letters, digits, hyphens)")
+            bad = True
+            continue
+        if pid in out:
+            state.fail("front matter", f"people: {pid!r} appears twice")
+            bad = True
+            continue
+        out.append(pid)
+    if not out and not bad:
+        state.fail("front matter", "people: is empty (leave the line out for "
+                                   "Chris only, or write `everyone`)")
+    return out
+
+
+def parse_example(raw: str | None, state: ParseState) -> bool:
+    """`example: true` marks the shared example trip."""
+    if raw is None:
+        return False
+    v = raw.strip().lower()
+    if v in ("true", "yes"):
+        return True
+    if v in ("false", "no"):
+        return False
+    state.fail("front matter", f"example: {raw!r} is not true or false")
+    return False
 
 
 def parse_who(raw: str, roster: list[dict], loc: str,
@@ -323,6 +379,8 @@ def parse_md(text: str, state: ParseState):
     stop = None
     stop_place_query = None
     roster = parse_travelers(meta.get("travelers"), state)
+    meta["_people"] = parse_people(meta.get("people"), state)
+    meta["_example"] = parse_example(meta.get("example"), state)
     route_ids: set[str] = set()
     choice_days: dict[str, str] = {}      # choice id -> the day that owns it
     nested = None                          # open `stop:` under a [route]
@@ -885,10 +943,13 @@ def build(text: str, strict: bool = False) -> dict:
                          "home": meta.get("home_currency", "USD").upper()},
             "start_date": days[0]["date"],
             "end_date": days[-1]["date"],
+            "people": meta.get("_people", list(DEFAULT_PEOPLE)),
         },
         "places": places,
         "days": days,
     }
+    if meta.get("_example"):
+        doc["trip"]["example"] = True
     if meta.get("_travelers"):
         doc["trip"]["travelers"] = meta["_travelers"]
     # `picture: <Commons file name>` -- the trip picture chosen with "Change

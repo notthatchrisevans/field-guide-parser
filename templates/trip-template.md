@@ -107,6 +107,16 @@ one stop.
 
 ### Travelers, choices, routes and images (all optional)
 
+**People.** `people: chris, debby` in the front matter says who may open
+the trip in the app: sign-in ids, lowercase letters, digits and hyphens,
+separated by commas. `people: everyone` means anyone signed in. Leave the
+line out and the trip is Chris's only. This is who can *see* the trip;
+`travelers:` (below) is who is *on* each stop, by display name.
+
+**Example.** `example: true` marks the shared example trip: it opens like a
+trip that's underway, carries an EXAMPLE tag, and its planner is read-only.
+Real trips leave the line out.
+
 **Travelers.** Add `travelers: Chris; Debbie` to the front matter when more
 than one person travels. Then any stop can say `- who: chris` (or
 `who: chris, debbie`); a stop without `who:` is for everyone. Only names
@@ -178,6 +188,7 @@ city: Example
 timezone: Europe/London
 currency: GBP
 year: 2027
+people: chris
 ---
 
 ## FRIDAY, JANUARY 1

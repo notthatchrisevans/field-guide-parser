@@ -1,7 +1,8 @@
 """Participants, choices, routes and images (Sep 2026).
 
 Two promises: files that use none of it parse to byte-identical output
-(the snapshot fixtures), and every way to get it wrong fails loudly with a
+(the snapshot fixtures; since Oct 2026 every trip also carries
+`people`, ["chris"] by default), and every way to get it wrong fails loudly with a
 message that names the mistake."""
 
 import json

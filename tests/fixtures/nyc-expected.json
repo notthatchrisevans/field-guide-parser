@@ -8,7 +8,10 @@
       "home": "USD"
     },
     "start_date": "2026-09-18",
-    "end_date": "2026-09-25"
+    "end_date": "2026-09-25",
+    "people": [
+      "chris"
+    ]
   },
   "places": {
     "delta-dl0405-sfo-jfk": {
